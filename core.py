@@ -1,32 +1,32 @@
-from abc import ABCMeta
+from abc import ABCMeta, abstractmethod
+from collections import deque
 
 
 class Token:
 
-    def __init__(self, role_assigment_flexibilities):
-        self.role_assigment_flexibilities = role_assigment_flexibilities
-        self.assigned_roles = [False] * len(satisfiable_roles)
+    def __init__(self, number_of_roles, node_ids_ordered_by_flexibility):
+        self.number_of_roles = number_of_roles
+        self.node_ids_ordered_by_flexibility = deque(node_ids_ordered_by_flexibility)
+        self.assigned_roles = set()
 
     def determine_assignable_roles(self, satisfiable_roles):
         """
         Based on a node's satisfiable roles and the currently assigned
         roles, determine all assignable roles for that node
         """
-        return [satisfiable_role and not assigned_role
-                for (satisfiable_role, assigned_role) in zip(satisfiable_roles, self.assigned_roles)]
+        return satisfiable_roles.difference(self.assigned_roles)
 
-    def mark_role_assigned_to_node(self, role_id, node_id):
-        self.assigned_roles[role_id] = True
-        self.role_assigment_flexibilities[node_id] = None
+    def record_assigned_role(self, role_id):
+        self.assigned_roles.add(role_id)
 
-    def determine_next_most_flexibile_node(self):
-        for (node_id, role_assignment_flexibility) in enumerate(self.role_assigment_flexibilities):
-            if role_assignment_flexibility is not None:
-                return node_id
-        return None
+    def remove_least_flexible_node(self):
+        try:
+            return self.node_ids_ordered_by_flexibility.popleft()
+        except IndexError:
+            return None
 
     def all_roles_assigned(self):
-        return all(self.assigned_roles)
+        return self.number_of_roles == len(self.assigned_roles)
 
 
 class Network:
@@ -55,13 +55,16 @@ class SimulatedNetwork(Network):
         self.logical_nodes = logical_nodes
 
     def evaluate_roles_broadcast(self):
-        role_assignment_flexibilities = \
-            [logical_node.evaluate_against(self.role_criterias) for logical_node in self.logical_nodes]
+        satisfying_nodes = \
+            [logical_node for logical_node in self.logical_nodes if logical_node.evaluate_against(self.role_criterias)]
 
-        return role_assignment_flexibilities
+        node_ids_ordered_by_flexibility = \
+            map(lambda node: node.node_id, sorted(satisfying_nodes, key=lambda node: node.assignment_flexibility))
+
+        return node_ids_ordered_by_flexibility
 
     def send_token(self, src_node_id, dst_node_id, token):
-        self.logical_nodes[dst_node_id].receive_token(src_node_id, token)
+        return self.logical_nodes[dst_node_id].receive_token(src_node_id, token)
 
 
 class RoleCriteria:
@@ -80,56 +83,55 @@ class RoleCriteria:
 
 
 class LogicalNode:
-    def __init__(self, node_id, child_node_ids, network, parameters):
+    def __init__(self, node_id, network, parameters):
         self.node_id = node_id
-        self.child_node_ids = child_node_ids
+        # @TODO: This field is necessary for keeping track of the network's spanning tree. It
+        # will be used to compute the node assignment flexibilities using a network broadcast
+        self.child_node_ids = None
         self.network = network
         self.parameters = parameters
-        self.satisfiable_roles = []
+        self.satisfiable_roles = set()
         self.assignment_flexibility = None
         self.assigned_role = None
 
     def evaluate_against(self, role_criterias):
-        for role_criteria in role_criterias:
-            self.satisfiable_roles.append(role_criteria.evaluate_against(parameters))
+        for (role_id, role_criteria) in enumerate(role_criterias):
+            if role_criteria.evaluate_against(self.parameters):
+                self.satisfiable_roles.add(role_id)
 
-        self.assignment_flexibility = sum(self.satisfiable_roles)
+        self.assignment_flexibility = len(self.satisfiable_roles)
         return self.assignment_flexibility
 
-    def receive_token(self, token):
-        if self.choose_role(token):
-            # @TODO: determine how we should deal with/propagate the unassignability of roles.
-            # I'm thinking we should return tuples that store rich information about
-            # why we were unable to assign all roles. For example, all roles might not be
-            # assignable because either a node can't be assigned any role, or
-            # because there are no nodes left in the system to assign roles to.
-            # There might be other reasons as well
-            return False
-        else:
-            return self.forward_token(token)
+    def begin_logical_assignment(self, token):
+        least_flexible_node_id = token.remove_least_flexible_node()
+        return network.send_token(-1, least_flexible_node_id, token)
 
-    def choose_role(self, token):
+    def receive_token(self, src_node_id, token):
+        self.choose_role_if_available(token)
+        return self.forward_token(token)
+
+    def choose_role_if_available(self, token):
         assignable_roles = token.determine_assignable_roles(self.satisfiable_roles)
-
-        for (assignable_role_id, assignable_role) in enumerate(assignable_roles):
-            if assignable_role:
-                token.mark_role_assigned_to_node(assignable_role_id, self.node_id)
-                self.assigned_role = assignable_role
-                return True
-
-        # No assignable roles!
-        return False
+        if assignable_roles:
+            self.assigned_role = assignable_roles.pop()
+            token.record_assigned_role(self.assigned_role)
 
     def forward_token(self, token):
         if token.all_roles_assigned():
             # Success! We have satisfied all roles.
             return True
 
-        next_most_flexible_node_id = token.determine_next_most_flexibile_node()
-        if next_most_flexible_node_id is not None:
-            return self.network.send_token(next_most_flexible_node_id, token)
+        least_flexible_node_id = token.remove_least_flexible_node()
+        if least_flexible_node_id is not None:
+            return self.network.send_token(self.node_id, least_flexible_node_id, token)
         else:
             # Failure! There are no more nodes, and we still have roles to assign
+            # @TODO: determine how we should deal with/propagate the unassignability of roles.
+            # I'm thinking we should return tuples that store rich information about
+            # why we were unable to assign all roles. For example, all roles might not be
+            # assignable because either a node can't be assigned any role, or
+            # because there are no nodes left in the system to assign roles to.
+            # There might be other reasons as well
             return False
 
 
@@ -140,42 +142,44 @@ class LogicalNode:
 # relationship between the network and the logical nodes will likely change.
 ##################################################################################
 
-if __name__ == "__main__":
+if __name__ == '__main__':
 
-# Clients will define their own RoleCriteria, which will expect
-# a certain set of parameters to evaluate on
-class MyAwesomeRoleCriteria(RoleCriteria):
-    def __init__(self, name, happy, excited):
-        self.name = name
-        self.happy = happy
-        self.excited = excited
+    # Clients will define their own RoleCriteria, which will expect
+    # a certain set of parameters to evaluate on
+    class MyAwesomeRoleCriteria(RoleCriteria):
+        def __init__(self, name, happy, excited):
+            self.name = name
+            self.happy = happy
+            self.excited = excited
 
-    def evaluate_against(self, node_parameters):
-        return self.happy == node_parameters["happy"] and self.excited == node_parameters["excited"]
+        def evaluate_against(self, node_parameters):
+            return self.happy == node_parameters["happy"] and self.excited == node_parameters["excited"]
 
 
-role_criteria_1 = MyAwesomeRoleCriteria("very sad", happy=False, excited=False)
-role_criteria_2 = MyAwesomeRoleCriteria("just content", happy=True, excited=False)
-role_criteria_3 = MyAwesomeRoleCriteria("freaking excited", happy=False, excited=False)
+    role_criteria_1 = MyAwesomeRoleCriteria("very sad", happy=False, excited=False)
+    role_criteria_2 = MyAwesomeRoleCriteria("just content", happy=True, excited=False)
+    role_criteria_3 = MyAwesomeRoleCriteria("freaking excited", happy=True, excited=True)
+    role_criterias = [role_criteria_1, role_criteria_2, role_criteria_3]
 
-role_criterias = [role_criteria_1, role_criteria_2, role_criteria_3]
+    network = SimulatedNetwork(role_criterias)
 
-network = SimulatedNetwork(role_criterias)
+    node_1 = LogicalNode(0, network, parameters={ "happy": True, "excited": True })
+    node_2 = LogicalNode(1, network, parameters={ "happy": True, "excited": True })
+    node_3 = LogicalNode(2, network, parameters={ "happy": False, "excited": False })
+    node_4 = LogicalNode(3, network, parameters={ "happy": True, "excited": False })
+    nodes = [node_1, node_2, node_3, node_4]
 
-my_first_node = LogicalNode(0, [1, 2], network, parameters={ "happy": True, "excited": True })
-my_second_node = LogicalNode(1, None, network, parameters={ "happy": True, "excited": False })
-my_third_node = LogicalNode(2, None, network, parameters={ "happy": False, "excited": False })
+    network.set_logical_nodes(nodes)
 
-network.set_logical_nodes([my_first_node, my_second_node, my_third_node])
+    node_ids_ordered_by_flexibility = network.evaluate_roles_broadcast()
+    token = Token(len(role_criterias), node_ids_ordered_by_flexibility)
 
-role_assignment_flexibilities = network.evaluate_roles_broadcast()
-token = Token(role_assigment_flexibilities)
+    assignment_result = node_1.begin_logical_assignment(token)
 
-assignment_result = my_first_node.receive_token(token)
-if assignment_result:
-    print "Success! All roles assigned!"
-    print "my_first_node's role: %s" % role_criterias[my_first_node.assigned_role].name
-    print "my_second_node's role: %s" % role_criterias[my_second_node.assigned_role].name
-    print "my_third_node's role: %s" % role_criterias[my_third_node.assigned_role].name
-else:
-    print "Error! Some role couldn't be satisfied"
+    if assignment_result:
+        print "Success! All roles assigned!"
+        for node in nodes:
+            if node.assigned_role is not None:
+                print "Node %d's role: %s" % (node.node_id, role_criterias[node.assigned_role].name)
+    else:
+        print "Error! Some role couldn't be satisfied"
