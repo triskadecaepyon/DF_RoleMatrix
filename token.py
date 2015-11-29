@@ -2,9 +2,9 @@ from collections import deque
 
 class Token:
 
-    def __init__(self, role_ids, node_ids_ordered_by_flexibility):
+    def __init__(self, role_ids, assignment_indexes):
         self.unassigned_roles = set(role_ids)
-        self.node_ids_ordered_by_flexibility = deque(node_ids_ordered_by_flexibility)
+        self.assignment_indexes = deque(assignment_indexes)
 
     def determine_assignable_roles(self, satisfiable_roles):
         """
@@ -19,12 +19,12 @@ class Token:
         """
         self.unassigned_roles.remove(role_id)
 
-    def remove_least_flexible_node(self):
+    def next_node(self):
         """
-        Attempts to retrieve the next node with the least flexibility, if it exists.
+        Attempts to retrieve the next node with the smallest assignment index, if it exists.
         """
         try:
-            return self.node_ids_ordered_by_flexibility.popleft()[1]
+            return self.assignment_indexes.popleft()[2]
         except IndexError:
             return None
 

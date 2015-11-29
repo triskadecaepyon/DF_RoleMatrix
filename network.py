@@ -27,3 +27,6 @@ class SimulatedNetwork(Network):
 
     def send_token(self, src_node_id, dst_node_id, token):
         return self.logical_nodes[dst_node_id].receive_token(src_node_id, token)
+
+    def update_assignment_index(self, src_node_id, dst_node_id, assigned_role):
+        return self.logical_nodes[dst_node_id].update_assignment_index(assigned_role)
