@@ -1,4 +1,6 @@
-from token import *
+from logical_token import Token
+from collections import deque
+
 
 class LogicalNode:
     def __init__(self, node_id, child_node_ids, network, parameters):
