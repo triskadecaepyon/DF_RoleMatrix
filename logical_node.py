@@ -1,5 +1,6 @@
 from logical_token import Token
 import rpyc
+import sys
 
 FLEXIBILITY_ELEMENT = 0
 PRIORITY_ELEMENT = 1
@@ -97,9 +98,7 @@ class LogicalNode:
 
         return (assignment_flexibility, assignment_priority, self.node_id)
 
-    def receive_token(self, src_node_id, token_attr_dict):
-        token = Token.from_dict(token_attr_dict) # this is necessary because RPC serializes objects to raw dicts
-
+    def receive_token(self, src_node_id, token):
         self.choose_role_if_available(token)
         return self.forward_token(token)
 
