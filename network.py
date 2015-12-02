@@ -1,32 +1,153 @@
-from abc import ABCMeta, abstractmethod
+import SimpleXMLRPCServer
+import xmlrpclib
+import rpyc
+from rpyc.utils.server import ThreadedServer
+import socket
+import threading
+
+def create_logical_node_service(logical_node):
+
+    class LogicalNodeService(rpyc.Service):
+
+        def exposed_begin_logical_assignment(self):
+            return logical_node.begin_logical_assignment()
+
+        def exposed_receive_evaluate_roles_message(self):
+            return logical_node.receive_evaluate_roles_message()
+
+        def exposed_receive_token(self, src_node_id, token):
+            return logical_node.receive_token(src_node_id, token)
+
+        def exposed_receive_update_assignment_index_message(self, assigned_role):
+            return logical_node.receive_update_assignment_index_message(assigned_role)
+
+        # override rpyc's security
+        def _rpyc_getattr(self, name):
+            return getattr(logical_node, name)
+
+    return LogicalNodeService
 
 class Network:
-    __metaclass__ = ABCMeta
 
-    @abstractmethod
-    def send_evaluate_roles_message(self, src_node_id, dst_node_id, role_criterias):
-        pass
+    def get_num_nodes(self):
+        return len(self.logical_nodes)
 
-    @abstractmethod
-    def send_token(self, src_node, dst_node, token):
-        pass
+    def send_evaluate_roles_message(self, src_node_id, dst_node_id):
+        async_send_evaluate_roles_message = \
+            self.async(self.logical_nodes[dst_node_id].receive_evaluate_roles_message)
+        return async_send_evaluate_roles_message()
+
+    def send_token(self, src_node_id, dst_node_id, token):
+        return self.logical_nodes[dst_node_id].receive_token(src_node_id, token)
+
+    def send_update_assignment_index_message(self, src_node_id, dst_node_id, assigned_role):
+        async_send_update_assignment_index_message = \
+            self.async(self.logical_nodes[dst_node_id].receive_update_assignment_index_message)
+        return async_send_update_assignment_index_message(assigned_role)
+
+    def start_server(self):
+        self.server.start()
+
+class LiveNetwork(Network):
+
+    MAX_RETRIES = 15
+
+    class Client:
+
+        def __init__(self, conn):
+            self.conn = conn
+
+        def __getattr__(self, name):
+            return self.conn.root.__getattr__(name)
+
+    class ClientConnector(threading.Thread):
+
+        def __init__(self, logical_nodes, node_id, node_ip_address):
+            threading.Thread.__init__(self)
+            self.logical_nodes = logical_nodes
+            self.node_id = node_id
+            self.node_ip_address = node_ip_address
+
+        def run(self):
+            client = LiveNetwork.create_client(self.node_ip_address)
+            self.logical_nodes[self.node_id] = client
+
+    def __init__(self, server_node, node_ip_addresses):
+        self.async = rpyc.async
+        self.logical_nodes = [None] * len(node_ip_addresses)
+        for (node_id, node_ip_address) in enumerate(node_ip_addresses):
+            if node_id != server_node.node_id:
+                LiveNetwork.ClientConnector(self.logical_nodes, node_id, node_ip_address).start()
+            else:
+                server_node.set_network(self)
+                self.logical_nodes[node_id] = server_node
+                logical_node_service = create_logical_node_service(server_node)
+                self.server = ThreadedServer(
+                    logical_node_service,
+                    hostname=node_ip_addresses[server_node.node_id][0],
+                    port=node_ip_addresses[server_node.node_id][1],
+                    protocol_config={"allow_all_attrs": True})
+
+    @staticmethod
+    def create_client(node_ip_address):
+        conn = None
+        retry_count = 0
+        while not conn and retry_count < LiveNetwork.MAX_RETRIES:
+            try:
+                conn = rpyc.connect(node_ip_address[0], node_ip_address[1], config = {"allow_all_attrs": True})
+            except socket.error as e:
+                retry_count += 1
+                continue
+
+        return LiveNetwork.Client(conn)
+
 
 class SimulatedNetwork(Network):
     """
     Simplifies development. Should be swappable with a derived Network class that uses real connections
     """
 
-    def __init__(self, role_criterias):
-        self.role_criterias = role_criterias
 
-    def set_logical_nodes(self, logical_nodes):
+    class Future:
+        """
+        Simulates the rpyc async interface
+        Heavily adapted from http://code.activestate.com/recipes/84317-easy-threading-with-futures/
+        """
+
+        def __init__(self, func):
+            self.func = func
+            self._reset()
+            self.still_computing = threading.Condition()   # Notify on this Condition when result is ready
+
+        def _reset(self):
+            self.done = False
+            self.value = None
+            self.exception = None
+
+        def __call__(self, *args):
+            self._reset()
+            computation = threading.Thread(target=self._compute, args=args)
+            computation.start()
+            return self
+
+        def wait(self):
+            self.still_computing.acquire()
+            while not self.done:
+                self.still_computing.wait()
+            self.still_computing.release()
+
+        def _compute(self, *arg, **kwargs):
+            self.still_computing.acquire()
+            try:
+                self.value = self.func(*arg, **kwargs)
+            except Exception as e:
+                self.exception = e
+            self.done = True
+            self.still_computing.notify()
+            self.still_computing.release()
+
+    def __init__(self, logical_nodes):
+        self.async = SimulatedNetwork.Future
         self.logical_nodes = logical_nodes
-
-    def send_evaluate_roles_message(self, src_node_id, dst_node_id, role_criterias):
-        return self.logical_nodes[dst_node_id].receive_evaluate_roles_message(role_criterias)
-
-    def send_token(self, src_node_id, dst_node_id, token):
-        return self.logical_nodes[dst_node_id].receive_token(src_node_id, token)
-
-    def update_assignment_index(self, src_node_id, dst_node_id, assigned_role):
-        return self.logical_nodes[dst_node_id].update_assignment_index(assigned_role)
+        for logical_node in logical_nodes:
+            logical_node.set_network(self)

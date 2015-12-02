@@ -7,28 +7,26 @@ from role_criteria import *
 # Example code that roughly shows how the framework is to be used. Note: the
 # relationship between the network and the logical nodes will likely change.
 ##################################################################################
-class MyAwesomeRoleCriteria(RoleCriteria):
-    def __init__(self, name, happy, excited):
+class MockRoleCriteria(RoleCriteria):
+    def __init__(self, name, node_grade_map):
         self.name = name
-        self.happy = happy
-        self.excited = excited
+        self.node_grade_map = node_grade_map
 
     def evaluate_against(self, node_parameters):
-        return int(self.happy == node_parameters["happy"] and self.excited == node_parameters["excited"])
+        return self.node_grade_map[node_parameters["node_id"]]
 
 # Clients will define their own RoleCriteria, which will expect
 # a certain set of parameters to evaluate on
 role_criterias = [
-    MyAwesomeRoleCriteria("very sad", happy=False, excited=False),
-    MyAwesomeRoleCriteria("just content", happy=True, excited=False),
-    MyAwesomeRoleCriteria("freaking excited", happy=True, excited=True)
+    MockRoleCriteria("rc0", {0: 1, 1: 0, 2: 3}),
+    MockRoleCriteria("rc1", {0: 4, 1: 4, 2: 0}),
+    MockRoleCriteria("rc2", {0: 0, 1: 8, 2: 0})
 ]
 
 nodes = [
-    LogicalNode(0, { "happy": True, "excited": True }, role_criterias),
-    LogicalNode(1, { "happy": True, "excited": True }, role_criterias),
-    LogicalNode(2, { "happy": False, "excited": False }, role_criterias),
-    LogicalNode(3, { "happy": True, "excited": False }, role_criterias)
+    LogicalNode(0, { "node_id": 0 }, role_criterias),
+    LogicalNode(1, { "node_id": 1 }, role_criterias),
+    LogicalNode(2, { "node_id": 2 }, role_criterias)
 ]
 
 if __name__ == '__main__':

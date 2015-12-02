@@ -1,57 +1,78 @@
 from logical_token import Token
-from collections import deque
+import rpyc
 
+FLEXIBILITY_ELEMENT = 0
+PRIORITY_ELEMENT = 1
+NODE_ID_ELEMENT = 2
 
 class LogicalNode:
-    def __init__(self, node_id, child_node_ids, network, parameters):
+    def __init__(self, node_id, parameters, role_criterias, child_node_ids = []):
         self.node_id = node_id
-        self.child_node_ids = child_node_ids
-        self.network = network
         self.parameters = parameters
+        self.role_criterias = role_criterias
+        self.child_node_ids = child_node_ids
         self.satisfiable_roles = set()
         self.assigned_role = None
+        self.network = None
 
-    def begin_logical_assignment(self, role_criterias):
+    def set_network(self, network):
+        self.network = network
+
+    def begin_logical_assignment(self):
         """
         Kicks off the logical assignment operation by broadcasting an "Evaluate Roles" message,
         creating a token, and then sending that token off to the first least flexible node.
         """
-        nodes_ids_ordered_by_assignment_index = self.evaluate_roles_broadcast(role_criterias)
-        role_ids = range(len(role_criterias))
+        if self.child_node_ids:
+            child_node_ids = self.child_node_ids
+        else:
+            child_node_ids = range(self.network.get_num_nodes())
+            child_node_ids.remove(self.node_id)
 
-        token = Token(role_ids, nodes_ids_ordered_by_assignment_index)
+        assignment_indexes = self.evaluate_roles_broadcast(child_node_ids)
+
+        assignment_path = self.create_assigment_path(assignment_indexes)
+        role_ids = range(len(self.role_criterias))
+
+        token = Token(role_ids, assignment_path)
 
         next_node_id = token.next_node()
         return self.network.send_token(self.node_id, next_node_id, token)
 
-    def evaluate_roles_broadcast(self, role_criterias):
+    def create_assigment_path(self, assignment_indexes):
+        return map(lambda assignment_index: assignment_index[NODE_ID_ELEMENT], sorted(assignment_indexes))
+
+    def evaluate_roles_broadcast(self, child_node_ids):
         """
         Used by the root node in the broadcast spanning tree to sort
         the received assignment indexes
         """
-        nodes_ids_ordered_by_assignment_index = sorted(self.receive_evaluate_roles_message(role_criterias))
+        assignment_indexes = []
 
-        return nodes_ids_ordered_by_assignment_index
+        async_results = []
+        for child_node_id in child_node_ids:
+            result = self.network.send_evaluate_roles_message(self.node_id, child_node_id)
+            async_results.append(result)
 
-    def receive_evaluate_roles_message(self, role_criterias):
+        assignment_index = self.evaluate_roles()
+        if assignment_index[FLEXIBILITY_ELEMENT] > 0:
+            assignment_indexes.append(assignment_index)
+
+        for result in async_results:
+            result.wait()
+            assignment_indexes.extend(result.value)
+
+        return assignment_indexes
+
+    def receive_evaluate_roles_message(self):
         """
         Processes an "Evaluate Roles" message by first forwarding the message to child nodes.
         In the meantime, the current node evaluates itself against the role criterias.
         Finally, the aggregated results are returned to the parent node.
         """
-        assignment_indexes = []
+        return self.evaluate_roles_broadcast(self.child_node_ids)
 
-        for child_node_id in self.child_node_ids:
-            result = self.network.send_evaluate_roles_message(self.node_id, child_node_id, role_criterias)
-            assignment_indexes.extend(result)
-
-        assignment_index = self.evaluate_against(role_criterias)
-        if assignment_index:
-            assignment_indexes.append(assignment_index)
-
-        return assignment_indexes
-
-    def evaluate_against(self, role_criterias):
+    def evaluate_roles(self):
         """
         Simply loops through each role criteria and evaluates it using the current
         nodes parameters
@@ -59,24 +80,26 @@ class LogicalNode:
 
         self.overall_grade = 0
 
-        for (role_id, role_criteria) in enumerate(role_criterias):
+        for (role_id, role_criteria) in enumerate(self.role_criterias):
             grade = role_criteria.evaluate_against(self.parameters)
             if grade > 0:
                 self.overall_grade += grade
                 self.satisfiable_roles.add((role_id, grade))
 
-        return self.compute_assignment_index()
+        return self.compute_assignment_index(self.overall_grade)
 
-
-    def compute_assignment_index(self):
+    def compute_assignment_index(self, overall_grade):
         assignment_flexibility = len(self.satisfiable_roles)
-        if assignment_flexibility:
-            assignment_priority = 1.0 / self.overall_grade
-            return (assignment_flexibility, assignment_priority, self.node_id)
+        if assignment_flexibility > 0:
+            assignment_priority = 1.0 / overall_grade
         else:
-            return None
+            assignment_priority = float('inf')
 
-    def receive_token(self, src_node_id, token):
+        return (assignment_flexibility, assignment_priority, self.node_id)
+
+    def receive_token(self, src_node_id, token_attr_dict):
+        token = Token.from_dict(token_attr_dict) # this is necessary because RPC serializes objects to raw dicts
+
         self.choose_role_if_available(token)
         return self.forward_token(token)
 
@@ -91,16 +114,22 @@ class LogicalNode:
             self.assigned_role = assignable_roles.pop()
             token.record_assigned_role(self.assigned_role)
 
+            async_results = []
+            for node_id in token.assignment_path:
+                result = \
+                    self.network.send_update_assignment_index_message(self.node_id, node_id, self.assigned_role)
+                async_results.append(result)
+
             updated_assignment_indexes = []
-            for assignment_index in token.assignment_indexes:
-                updated_assignment_index = \
-                    self.network.update_assignment_index(self.node_id, assignment_index[2], self.assigned_role)
-                if updated_assignment_index:
+            for result in async_results:
+                result.wait()
+                updated_assignment_index = result.value
+                if updated_assignment_index[FLEXIBILITY_ELEMENT] > 0:
                     updated_assignment_indexes.append(updated_assignment_index)
 
-            token.assignment_indexes = deque(sorted(updated_assignment_indexes))
+            token.assignment_path = self.create_assigment_path(updated_assignment_indexes)
 
-    def update_assignment_index(self, assigned_role):
+    def receive_update_assignment_index_message(self, assigned_role):
         found_role = None
 
         for satisfiable_role in self.satisfiable_roles:
@@ -108,12 +137,11 @@ class LogicalNode:
                 found_role = satisfiable_role
                 break
 
-
         if found_role:
             self.satisfiable_roles.remove(found_role)
             self.overall_grade -= found_role[1]
 
-        return self.compute_assignment_index()
+        return self.compute_assignment_index(self.overall_grade)
 
     def forward_token(self, token):
         """

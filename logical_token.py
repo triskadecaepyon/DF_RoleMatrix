@@ -1,17 +1,19 @@
-from collections import deque
-
 class Token:
 
-    def __init__(self, role_ids, assignment_indexes):
-        self.unassigned_roles = set(role_ids)
-        self.assignment_indexes = deque(assignment_indexes)
+    def __init__(self, role_ids, assignment_path):
+        self.unassigned_roles = role_ids
+        self.assignment_path = assignment_path
+
+    @staticmethod
+    def from_dict(attr_dict):
+        return Token(attr_dict["unassigned_roles"], attr_dict["assignment_path"])
 
     def determine_assignable_roles(self, satisfiable_roles):
         """
         Based on a node's satisfiable roles and the currently unassigned
         roles, determine all assignable roles for that node
         """
-        return satisfiable_roles.intersection(self.unassigned_roles)
+        return satisfiable_roles.intersection(set(self.unassigned_roles))
 
     def record_assigned_role(self, role_id):
         """
@@ -24,7 +26,7 @@ class Token:
         Attempts to retrieve the next node with the smallest assignment index, if it exists.
         """
         try:
-            return self.assignment_indexes.popleft()[2]
+            return self.assignment_path.pop(0)
         except IndexError:
             return None
 
@@ -39,3 +41,6 @@ class Token:
         """
 
         return len(self.unassigned_roles) > 0
+
+    def __getitem__(self, item):
+        return self.__dict__[item]
