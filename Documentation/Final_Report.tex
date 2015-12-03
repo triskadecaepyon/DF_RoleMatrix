@@ -101,7 +101,7 @@ Once the topology is set with network and LogicalNodes, each node can assess its
 		\State{$Indices := indices$ U $ReceiveMessage$(dst, ``Assignment Index Result'')}
 		\State{path = $CreateAssignmentPath$(indices)}
 		    
-		\Return{(path, $\|R\|$)}
+		\Return{(path, $|R|$)}
 	\EndFor
 \EndFunction
 \end{algorithmic}	
@@ -130,6 +130,66 @@ Once the topology is set with network and LogicalNodes, each node can assess its
 \Function{ForwardToken:}{token}
 	\State $next := pop_first(token.path)$
 	\State{$SendMessage$(next, ``Token'', token)}
+\EndFunction
+\end{algorithmic}	
+
+\begin{algorithmic}
+\Function{Upon receiving ``Token'' message:}{token}
+	\If{$|S| > 0$}
+		\State $chosen\_role := choose role in S$
+		\State $S := S - chosen\_role$
+		\State $token := UpdateToken(token, chosen\_role)$
+	\Else
+		\State $chosen\_role := NIL$
+	\EndIf
+	\If{$token.roles\_left > 0$}
+		\If{$	if len(token.path) > do$}
+			\State $ForwardToken(token)$
+		\Else
+            		\State $error$(``failed to assign all roles'')
+		\EndIf
+	\Else
+		\State $success$(``all roles assigned'')
+	\EndIf
+\EndFunction
+\end{algorithmic}	
+
+\begin{algorithmic}
+\Function{Upon receiving ``Compute Assignment Index'' message:}{src}
+	\State $index = EvaluateRoles()$
+	\State $SendMessage$(src, ``Assignment Index Result'', index)
+\EndFunction
+\end{algorithmic}	
+
+\begin{algorithmic}
+\Function{Upon receiving ``Update Assignment Index'' message:}{src, role}
+	\If{$Role in S$}
+		\State $S := S - role$
+		\State $index.flexibility := index.flexibility - 1$
+		\If{$ index.flexibility >0 $}
+			\State old\_grade = $1 / index.priority$
+			\State index.priority $:= 1 / (old\_grade - grade(role))$
+		\Else
+			\State $index.priority = infinity$
+		\EndIf
+	\EndIf
+	\State $SendMessage$(src, ``Assignment Index Update'', index)
+\EndFunction
+\end{algorithmic}	
+
+\begin{algorithmic}
+\Function{EvaluateRoles:}{}
+	\State $grade :=  f: R x P \rightarrow N$
+	\State $S := \{r$ in $R :  grade (r) > 0\}$
+        \State $flexibility := | S |$
+        \If {$flexibility >0$}
+        		\State $priority := 1 / sum$ for all $r$ in $R$ grade ($r$)
+	\Else
+		\State $ priority := infinity$
+        \EndIf
+        \State $node_id := i$
+        
+	\Return (flexibility, priority, node\_id)
 \EndFunction
 \end{algorithmic}	
 
