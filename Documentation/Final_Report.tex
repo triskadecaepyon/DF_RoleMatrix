@@ -187,6 +187,16 @@ Finally, our algorithm greedily chooses the best node at the time of each role a
 \appendix
 
 \begin{algorithmic}
+\State{node\_k::}
+\State{$R:$ set of role criteria}
+\State{$P:$ set of node parameters}
+\State{$N:$ number of nodes}
+\State{$S:$ set of satisfiable roles}
+\State{grade: function that maps roles to grades}
+\State{index: assignment index for the current node}
+\end{algorithmic}
+
+\begin{algorithmic}
 \Function{BeginAssignment:}{}
    \State{token $:= CreateToken$()}
    \State{$ForwardToken$(token)}
@@ -200,8 +210,8 @@ Finally, our algorithm greedily chooses the best node at the time of each role a
       \State{$SendMessage$(dst, ``Compute Assignment Index'')}
       \State{indices $:=$ indices $\cup ReceiveMessage$(dst, ``Assignment Index Result'')}
    \EndFor
-   \State{path = $CreateAssignmentPath$(indices)}
-   \State{num_roles_to_assign = $|R|$}
+   \State{path $:= CreateAssignmentPath$(indices)}
+   \State{num_roles_to_assign $:= |R|$}
    \Return{(path, num_roles_to_assign)}
 \EndFunction
 \end{algorithmic}
@@ -215,20 +225,19 @@ Finally, our algorithm greedily chooses the best node at the time of each role a
 
 \begin{algorithmic}
 \Function{UpdateToken:}{token, chosen\_role}
-	\State $Indices := \{\}$
-	\For{$dst := 1$ to $len(token.path)$}
+	\State $indices := \{\}$
+	\For{dst $:= 1 to len$(token.path)}
 		\State{$SendMessage$(dst, ``Update Assignment Index'', chosen\_role)}
-		\State{$Indices := indices$ U $ReceiveMessage$(dst, ``Assignment Index Result'')}
+		\State{indices $:=$ indices $\cup ReceiveMessage$(dst, ``Assignment Index Result'')}
 	\EndFor
-	\State{path = $CreateAssignmentPath$(indices)}
-
-	\Return{(path, $R$)}
+	\State{path $:= CreateAssignmentPath$(indices)}
+	\Return{(path, token.num\_roles\_to\_assign $- 1$)}
 \EndFunction
 \end{algorithmic}
 
 \begin{algorithmic}
 \Function{ForwardToken:}{token}
-	\State $next := pop_first(token.path)$
+	\State{next $:= pop_first$(token.path)}
 	\State{$SendMessage$(next, ``Token'', token)}
 \EndFunction
 \end{algorithmic}
@@ -236,60 +245,60 @@ Finally, our algorithm greedily chooses the best node at the time of each role a
 \begin{algorithmic}
 \Function{Upon receiving ``Token'' message:}{token}
 	\If{$|S| > 0$}
-		\State $chosen\_role := choose role in S$
-		\State $S := S - chosen\_role$
-		\State $token := UpdateToken(token, chosen\_role)$
+		\State{chosen\_role $:= choose\_role$(S)}
+		\State{$S := S -$ chosen\_role}
+		\State{token $:= UpdateToken$(token, chosen\_role)}
 	\Else
-		\State $chosen\_role := NIL$
+		\State{chosen\_role $:= NIL$}
 	\EndIf
-	\If{$token.roles\_left > 0$}
-		\If{$	if len(token.path) > do$}
-			\State $ForwardToken(token)$
+	\If{token.roles\_left $> 0$}
+		\If{$len$(token.path) $> 0$}
+			\State{$ForwardToken$(token)}
 		\Else
-            		\State $error$(``failed to assign all roles'')
+         \State{$error$(``failed to assign all roles'')}
 		\EndIf
 	\Else
-		\State $success$(``all roles assigned'')
+		\State{$success$(``all roles assigned'')}
 	\EndIf
 \EndFunction
 \end{algorithmic}
 
 \begin{algorithmic}
 \Function{Upon receiving ``Compute Assignment Index'' message:}{src}
-	\State $index = EvaluateRoles()$
-	\State $SendMessage$(src, ``Assignment Index Result'', index)
+	\State{index $:= EvaluateRoles$()}
+	\State{$SendMessage$(src, ``Assignment Index Result'', index)}
 \EndFunction
 \end{algorithmic}
 
 \begin{algorithmic}
 \Function{Upon receiving ``Update Assignment Index'' message:}{src, role}
-	\If{$Role in S$}
-		\State $S := S - role$
-		\State $index.flexibility := index.flexibility - 1$
-		\If{$ index.flexibility >0 $}
-			\State old\_grade = $1 / index.priority$
-			\State index.priority $:= 1 / (old\_grade - grade(role))$
+	\If{role $\in S$}
+		\State{$S := S -$ role}
+		\State{index.flexibility $:=$ index.flexibility $- 1$}
+		\If{index.flexibility $> 0$}
+			\State{old\_grade $:= 1 / $ index.priority}
+			\State{index.priority $:= 1 /$ (old\_grade $- grade$(role))}
 		\Else
-			\State $index.priority = infinity$
+			\State{index.priority $:= \infty$}
 		\EndIf
 	\EndIf
-	\State $SendMessage$(src, ``Assignment Index Update'', index)
+	\State{$SendMessage$(src, ``Assignment Index Update'', index)}
 \EndFunction
 \end{algorithmic}
 
 \begin{algorithmic}
 \Function{EvaluateRoles:}{}
-	\State $grade :=  f: R x P \rightarrow N$
-	\State $S := \{r$ in $R :  grade (r) > 0\}$
-        \State $flexibility := | S |$
-        \If {$flexibility >0$}
-        		\State $priority := 1 / sum$ for all $r$ in $R$ grade ($r$)
+	\State{grade $:=  f: R \rightarrow \mathbb{R}$}
+	\State{$S := \{r \in R :  grade (r) > 0\}$}
+        \State{flexibility $:= |S|$}
+        \If {flexibility $> 0$}
+        		\State{priority $:= 1 / \sum_{r \in S }grade(r)$}
 	\Else
-		\State $ priority := infinity$
+		\State{priority $:= \infty$}
         \EndIf
-        \State $node_id := i$
+        \State{node\_id $:= i$}
 
-	\Return (flexibility, priority, node\_id)
+	\Return{(flexibility, priority, node\_id)}
 \EndFunction
 \end{algorithmic}
 
