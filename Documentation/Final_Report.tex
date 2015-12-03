@@ -80,7 +80,7 @@ Upon receiving the ``Update Assignment Index'' message, a node $k$ will check to
 \section{Example Framework}
 An example of the algorithm with end-user implementation will now be demonstrated.  For many users, computers and devices owned are rarely matched in specification; this causes an underutilization of resources, or an over-utilization or imbalance of a particular resource.  In order to combat this problem, it was conjectured that a method of grading, role assignment, and coordination were key in solving such a problem.  Assuming a wide range of configurations, the goal of the exercise is to be able to select and assign roles in a distributed fashion with heterogeneous systems.
 
-Utilizing the previous algorithm section in A.1, a framework has been created which implements the metaclass that houses the algorithm and necessary base functions.  The most important function of the metaclass is \textit{evaluate\_against}, which allows for the comparison of one class to another of equal type.  This function call returns a result that gives the rest of the algorithm a method to move about the algorithm for selection, and provide reentrant behavior for remaining resources such that they can continue to be assigned quickly without a main coordinator.  The code example is listed in A.2.
+Utilizing the previous algorithm section in \textit{A.1}, a framework has been created which implements the metaclass that houses the algorithm and necessary base functions.  The most important function of the metaclass is \textit{evaluate\_against}, which allows for the comparison of one class to another of equal type.  This function call returns a result that gives the rest of the algorithm a method to move about the algorithm for selection, and provide reentrant behavior for remaining resources such that they can continue to be assigned quickly without a main coordinator.  The code example is listed in \textit{A.2}.
 
 Parameters that describe the end system have been created to represent the wide variability in configuration that each of the nodes within the end system can have.  Related but vastly different characteristics such as processor power and graphics processor units, or network speed and storage capabilities.  The motivation for creating such parameters is to provide examples that simulate the wide range of variability in hardware present in today's computers and embedded systems.
 
@@ -190,7 +190,9 @@ Finally, our algorithm greedily chooses the best node at the time of each role a
 
 \section{Appendix: Code Listings}
 \appendix
-
+\begin{center}
+\large{\textbf{A.1}}
+\end{center}
 \begin{algorithmic}
 \Function{BeginAssignment:}{}
    \State{token $:= CreateToken$()}
@@ -297,6 +299,10 @@ Finally, our algorithm greedily chooses the best node at the time of each role a
 	\Return (flexibility, priority, node\_id)
 \EndFunction
 \end{algorithmic}
+
+\begin{center}
+\large{\textbf{A.2}}
+\end{center}
 
 \lstset{frame=single, caption=Framework Listing}
 \begin{lstlisting}
