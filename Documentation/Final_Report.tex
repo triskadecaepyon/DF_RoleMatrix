@@ -1,6 +1,6 @@
 \documentclass[11pt]{article}
 \usepackage{hyperref}
-\usepackage[margin=.75in,top=.8in]{geometry}	
+\usepackage[margin=.75in,top=.8in]{geometry}
 \usepackage{multicol}
 \usepackage{amssymb}
 \usepackage{listings}
@@ -22,25 +22,25 @@ Department of Electrical and Computer Engineering, University of Texas at Austin
 
 \textbf{Abstract}
 \end{center}
-In the majority of distributed systems today, computing work is preferably done by homogeneous systems to provide predictable balancing of divided work.  However, this requires a careful matching of tasks to hardware and an encompassing knowledge of capabilities provided by all systems.  In order to remove the need for managing such complexity, this report provides an algorithm and example framework to allow systems to map themselves logically based upon client-defined roles to complete computing tasks.  This allows for heterogeneous systems to automatically adjust their roles and tasks they take on, and give recalibrate themselves as nodes are added or subtracted from the network.  This report details the algorithm design and motivation, along with an example framework to implement on a client-side system.  Finally, a summary of the test results will demonstrate the viability of the algorithm in current and future implementations.
+In the majority of distributed systems today, computing work is preferably done by homogeneous systems in order to provide predictable balancing of divided work. However, this requires a careful matching of tasks to hardware and an encompassing knowledge of capabilities provided by all nodes in a system. In order to remove the need for managing such complexity, this report provides an algorithm and example framework that allows nodes in a system to map themselves logically to client-defined roles. This allows for heterogeneous systems to automatically adjust the roles of their nodes and thereby change the tasks those nodes take on. In addition, the algorithm and framework allows systems to easily recalibrate themselves as nodes are added or subtracted from the network. This report details the algorithm design and motivation, and it provides an example framework for implementing a client-side system. Finally, a summary of the test results and an analysis of the algorithm are provided to demonstrate the viability and efficiency of the algorithm in current and future implementations.
 
 \section{Introduction}
-Distributed systems have provided increased work capabilities to many computing problems and tasks over the last decade, and new technologies built on top of distributed systems have increased as well.  From cloud systems such as Amazon Web Services (AWS) to Apache Hadoop clusters, many of the systems in use today for infrastructure and applications rest on top of custom-built distributed systems.  However, ad-hoc and local hardware for consumers rarely achieve the coordination that the purpose-built systems can provide.  Furthermore, few frameworks can arbitrate the roles a system should take given a set of tasks, which is required for a network of homogeneous systems to coordinate their efforts.
+Distributed systems have provided increased computational capabilities to many computing problems and tasks over the last decade, and new technologies built on top of distributed systems have improved. From cloud systems such as Amazon Web Services (AWS) to Apache Hadoop clusters, many modern systems that are used for infrastructure and applications are implemented on top of custom-built distributed systems. However, ad-hoc and local hardware for consumers rarely achieve the coordination that these custom-built systems are able to provide.  Furthermore, given a set of tasks, few frameworks can arbitrate the roles that a system should take on, which is a requirement in order for networks of heterogeneous nodes to coordinate their efforts.
 
-Many new systems and frameworks provided recently have been geared toward Internet Of Things (IoT), which pair ``smart'' devices with functionality that automates or assists the user in a task or set of actions.  Many of the the newest frameworks looks to tie the coordination of devices (or systems) together, but do not solve the arbitration or device discovery together.  Examples of these frameworks are IoTivity, Azure IoT, and Apple HomeKit.  Each of these technologies looks to regulate the interfaces between devices and the user, as to abstract the coordination, the operating interface, or the scheduling and reporting interface.  However, each of these systems assume a hardware design that was designed to fit a singular role, and is inflexible to drive tasks other than those it was designed for.  Reconfiguration of resources is rare in most distributed systems, and is even more rare in IoT systems.  
+Many recent systems and frameworks have been geared toward the Internet Of Things (IoT), which pair ``smart'' devices with functionality that automates or assists the user in a task or set of actions.  Many of the newest frameworks look to tie the coordination of heterogenous devices or systems together, but do not solve the problem of role arbitration.  Examples of these frameworks are IoTivity, Azure IoT, and Apple HomeKit.  Each of these technologies looks to regulate the interfaces between devices and users, such as the coordination interface, the operating interface, or the scheduling and reporting interface. However, these systems assume a hardware design that was intended to fit a singular role, which makes them inflexible at driving tasks other than those they were designed for. Reconfiguration of resources is rare in many distributed systems and is even more rare in IoT systems.
 
-The motivation for the proposed system came from several known examples of reconfigurable routing and task deployment.  One of these examples is on power grid distribution, in which nodes on the grid must reconfigure themselves to deliver power when a node goes down and subsystem demands more power.  In adjusting for the downed node, the network must reconfigure power flows, solve for resources, and confirm the new settings to run.  In this manner, role changes must be decided and executed without any centralized server arbitrating the decision.  However, such a system where the nodes are of unknown design and configuration (and with different capabilities) can present a problem, since the solving of roles and allocation assumes a homogeneous nature of the nodes.  In addition, the removal or discovery of new heterogenous nodes become problematic, as no consistent protocol exists to decide on the role of the new nodes while simultaneously reconfiguring the network to give the overall system the best work capabilities.  
+The motivation for the proposed algorithm comes from several known examples of reconfigurable routing and task deployment.  One of these examples is power grid distribution, in which nodes on the grid must reconfigure themselves to deliver power when a node goes down or a subsystem demands more power.  In adjusting for a downed node, the network must reconfigure power flows by analyzing available resources, solving for the best assignment, and then confirming the new settings to run.  In this manner, role changes must be determined without any centralized server.  However, systems containing nodes of unknown design, configuration, or capability can present a problem, because solving for resource assignment generally assumes homogeneous nodes.  In addition, the removal or discovery of new heterogenous nodes is difficult because no general protocol exists for deciding the role of a new node while simultaneously reconfiguring the system to provide the best resource assignment.
 
-While some of the protocols may change with the specific domain, the fundamental design requirement is an algorithm to solve for new work capabilities, assign roles, and change configurations.  Although the proposed system shares some similarities to swarm algorithms and swarm robotics, the biggest difference is the use of heterogeneous systems for general computation tasks.  
+While some protocols do exist for specific domains, the fundamental design requirement for our algorithm is to dynamically assign roles and change system configurations without being strictly tied to a specific domain. Although the proposed algorithm shares some similarities to swarm algorithms and robotics, the biggest difference is the use of heterogeneous systems for general computation tasks.
 
 \section{Algorithm}
-The goal of our distributed algorithm is to create an injection from a set of roles to a set of physical nodes. A physical node $n$ is defined as having a set of parameters $P$. A role $r$ is defined as having a function $G: P \rightarrow \mathbb{R}$ that maps a node's parameters to a grade. In a real system, some roles may not be mappable or assignable to certain nodes. Whether a node can take on a given role is referred to as \textit{satisfiability}, and we say that node k \textit{satisfies} role $r$ if and only if $G_{r}(P_{k}) > 0$. 
+The goal of our distributed algorithm is to create an injection from a set of roles to a set of physical nodes. A physical node $n$ is defined as having a set of parameters $P$. A role $r$ is defined as having a function $G: P \rightarrow \mathbb{R}$ that maps a node's parameters to a grade. In a real system, some roles may not be mappable or assignable to certain nodes. Whether a node can take on a given role is referred to as \textit{satisfiability}, and we say that node k \textit{satisfies} role $r$ if and only if $G_{r}(P_{k}) > 0$.
 
 Because satisfiability prevents some roles from being assigned to certain nodes, nodes can be viewed as a limited resources. Thus, one inherent challenge in assigning roles to nodes is avoiding conflicts when using these resources. For example, let $R = \{1, 2\}$, let $N = \{1, 2\}$, and define $G_{R}$ as follows: $G1(P1) = 1, G1(P2) = 1, G2(P1) = 1, G2(P2) = 0$. Notice that if role 1 is assigned to node 1, then there is no role that can be assigned to node 2. In this case, we say there is a \textit{conflict} between node 1 and node 2. In particular, this conflict is an \textit{open conflict} because there is another role (role 2) that node 1 could have taken on in order to allow all roles to be satisfied. In contrast, a \textit{closed conflict} can be illustrated if we let $G1(P2) = 0$. Here, there is no other role that either node 1 or node 2 could take on in order to resolve the conflict.
 
 Encountering closed conflicts in a real system indicates a lack of node resources for satisfying roles. It is the system administrator or maintainer's responsibility to determine how to respond to closed conflicts. Open conflicts, on the other hand, can be resolved by changing the the order in which nodes take on roles. Let us return to the example above that illustrates an open conflict: if node 2 is assigned its only role first, there would still be one role left over to assign to node 1. Thus, it is clear that the key to avoiding open conflicts altogether is determining the correct order in which nodes should be assigned roles. Our algorithm accomplishes this in a distributed manner.
 
-The role assignment algorithm assumes that nodes in $N$ are strongly connected and that roles in $R$ are common knowledge [reference]. The algorithm begins by choosing a root node from N. This can be done using any root-finding algorithm such as MST [reference]. The root node broadcasts a ``Compute Assignment Index'' message to all nodes, including itself. 
+The role assignment algorithm assumes that nodes in $N$ are strongly connected and that roles in $R$ are common knowledge [reference]. The algorithm begins by choosing a root node from N. This can be done using any root-finding algorithm such as MST [reference]. The root node broadcasts a ``Compute Assignment Index'' message to all nodes, including itself.
 
 Upon receiving the ``Compute Assignment Index'' message, a node $k$ executes an evaluation routine that computes a set $S$ of satisfiable roles, where $S = \{r$ in $R : Gr(Pk) > 0\}$. From S, two new quantities are derived: flexibility and priority. Flexibility is defined as the degrees of freedom that a node has in choosing a role. It is derived as follows: flexibility = $\|S\|$. Flexibility is used to determine the next node that should choose a role. The algorithm maintains the invariant that the next node to choose a role is the one with the lowest flexibility. This invariant ensure that open conflicts never happen. A proof is given in the appendix.
 
@@ -55,23 +55,23 @@ Upon receiving the ``Token'' message, a node will first check to see if it has a
 Upon receiving the ``Update Assignment Index'' message, a node k will check to see if the chosen role is in $S$. If it is, the node will decrement its flexibility, recompute its priority, and send an ``Assignment Index Update'' message back with the updated index.
 
 \section{Example Framework}
-An example of the algorithm with end-user implementation will now be demonstrated.  For many users, computers and devices owned are rarely matched in specification; this causes an underutilization of resources, or an over-utilization or imbalance of a particular resource.  In order to combat this problem, it was conjectured that a method of grading, role assignment, and coordination were key in solving such a problem.  Assuming a wide range of configurations, the goal of the exercise is to be able to select and assign roles in a distributed fashion with heterogeneous systems.  
+An example of the algorithm with end-user implementation will now be demonstrated.  For many users, computers and devices owned are rarely matched in specification; this causes an underutilization of resources, or an over-utilization or imbalance of a particular resource.  In order to combat this problem, it was conjectured that a method of grading, role assignment, and coordination were key in solving such a problem.  Assuming a wide range of configurations, the goal of the exercise is to be able to select and assign roles in a distributed fashion with heterogeneous systems.
 
 Utilizing the previous algorithm section in A.1, a framework has been created which implements the metaclass that houses the algorithm and necessary base functions.  The most important function of the metaclass is \textit{evaluate\_against}, which allows for the comparison of one class to another of equal type.  This function call returns a result that gives the rest of the algorithm a method to move about the algorithm for selection, and provide reentrant behavior for remaining resources such that they can continue to be assigned quickly without a main coordinator.  The code example is listed in A.2.
 
-Parameters that describe the end system have been created to represent the wide variability in configuration that each of the nodes within the end system can have.  Related but vastly different characteristics such as processor power and graphics processor units, or network speed and storage capabilities.  The motivation for creating such parameters is to provide examples that simulate the wide range of variability in hardware present in today?s computers and embedded systems.  
+Parameters that describe the end system have been created to represent the wide variability in configuration that each of the nodes within the end system can have.  Related but vastly different characteristics such as processor power and graphics processor units, or network speed and storage capabilities.  The motivation for creating such parameters is to provide examples that simulate the wide range of variability in hardware present in today?s computers and embedded systems.
 
-The grading system is then created on heuristics that are representative of the domain?s needs.  In the case of the example, each of the values are weighed against thresholds in an array to determine boolean satisfiability for each of the various types of characteristics.  Once these have been determined, another grading system is used used for an overall score as a fallback when no roles are reached.  During the evaluate step, this allows for smaller hardware systems to still be viable for split tasks even in the absence of being adequate for larger tasks.  
+The grading system is then created on heuristics that are representative of the domain?s needs.  In the case of the example, each of the values are weighed against thresholds in an array to determine boolean satisfiability for each of the various types of characteristics.  Once these have been determined, another grading system is used used for an overall score as a fallback when no roles are reached.  During the evaluate step, this allows for smaller hardware systems to still be viable for split tasks even in the absence of being adequate for larger tasks.
 
-Then, using the algorithm created (along with the abstract base class in Python), roles are created to simulate the end user having a tasks to fill with a processing job passed from the application layer; these are classes that implement the \textit{RoleCriteria} metaclass.  Next the network topology is simulated with SimulatedNetwork, and encompasses the token passing logic along with the evaluation Application Programming Interface (API).  
+Then, using the algorithm created (along with the abstract base class in Python), roles are created to simulate the end user having a tasks to fill with a processing job passed from the application layer; these are classes that implement the \textit{RoleCriteria} metaclass.  Next the network topology is simulated with SimulatedNetwork, and encompasses the token passing logic along with the evaluation Application Programming Interface (API).
 
-Once the topology is set with network and LogicalNodes, each node can assess itself and decide to assign itself or pass the token; this begins with the \textit{node.begin\_logical\_assignment(role\_criterias)} call, which starts the evaluation process.  Once the system has evaluated all nodes, an analysis of the role assignments can be viewed and work can be done afterwards.  With the results now reached, the system can now evaluate whether it can move forward with the job and what each node?s responsibilities will be.  
+Once the topology is set with network and LogicalNodes, each node can assess itself and decide to assign itself or pass the token; this begins with the \textit{node.begin\_logical\_assignment(role\_criterias)} call, which starts the evaluation process.  Once the system has evaluated all nodes, an analysis of the role assignments can be viewed and work can be done afterwards.  With the results now reached, the system can now evaluate whether it can move forward with the job and what each node?s responsibilities will be.
 
 \section{Test Results}
 
 We implemented our role assignment algorithm in Python in order to simplify development. The algorithm relies on a \textit{Network} interface class to provide communication between nodes in a network. We derived two concrete classes from this interface: \textit{SimulatedNetwork} and \textit{LiveNetwork}. The \textit{LiveNetwork} class is implemented using RPyC [reference], which is a symmetric, asynchronous RPC framework. The \textit{SimulatedNetwork} is implemented using a simple list that contains each node in the network. It facilitates communication between a source node and destination node by indexing into the list using the destination node's ID.
 
-Our test results are based off using the \textit{SimulatedNetwork} implementation. We initially attempted the \textit{LiveNetwork} implementation on a single computer, but we were unable to produce satisfactory results due to limited computing resources. 
+Our test results are based off using the \textit{SimulatedNetwork} implementation. We initially attempted the \textit{LiveNetwork} implementation on a single computer, but we were unable to produce satisfactory results due to limited computing resources.
 
 We tested our algorithm (hereafter referred to as the ``smart'' algorithm in this section) against a naive centralized algorithm. The naive algorithm sends all node parameters to a central server, which assigns roles to nodes by recursively trying all possible assignment combinations until successful. The role assignments are then sent back to each node. We expect the naive algorithm's time complexity to be exponential in the worst-base but linear in the best-case.
 
@@ -94,7 +94,7 @@ One area of future work is improving the space efficiency of the token. Instead 
 
 \end{multicols}
 \begin{thebibliography}{9}
-  
+
 \bibitem{mst}
   R. G. GALLAGER, P. A. HUMBLET, and P. M. SPIRA,
   \emph{A Distributed Algorithm for Minimum-Weight Spanning Trees},
@@ -111,27 +111,27 @@ One area of future work is improving the space efficiency of the token. Instead 
 	\State $token := CreateToken()$
 	\State $ForwardToken(token)  $
 \EndFunction
-\end{algorithmic}	
+\end{algorithmic}
 
 \begin{algorithmic}
 \Function{CreateToken:}{}
-	\State $Indices := \{\}$        
+	\State $Indices := \{\}$
 	\For{$dst := 1$ to $N$}
 		\State{$SendMessage$(dst, ``Compute Assignment Index'')}
 		\State{$Indices := indices$ U $ReceiveMessage$(dst, ``Assignment Index Result'')}
 		\State{path = $CreateAssignmentPath$(indices)}
-		    
+
 		\Return{(path, $|R|$)}
 	\EndFor
 \EndFunction
-\end{algorithmic}	
+\end{algorithmic}
 
 \begin{algorithmic}
 \Function{CreateAssignmentPath:}{indices}
 	\State $indices := sort\_asc(indices)$
 	\State $ForwardToken(token)  $
 \EndFunction
-\end{algorithmic}	
+\end{algorithmic}
 
 \begin{algorithmic}
 \Function{UpdateToken:}{token, chosen\_role}
@@ -141,17 +141,17 @@ One area of future work is improving the space efficiency of the token. Instead 
 		\State{$Indices := indices$ U $ReceiveMessage$(dst, ``Assignment Index Result'')}
 	\EndFor
 	\State{path = $CreateAssignmentPath$(indices)}
-		    
+
 	\Return{(path, $R$)}
 \EndFunction
-\end{algorithmic}	
+\end{algorithmic}
 
 \begin{algorithmic}
 \Function{ForwardToken:}{token}
 	\State $next := pop_first(token.path)$
 	\State{$SendMessage$(next, ``Token'', token)}
 \EndFunction
-\end{algorithmic}	
+\end{algorithmic}
 
 \begin{algorithmic}
 \Function{Upon receiving ``Token'' message:}{token}
@@ -172,14 +172,14 @@ One area of future work is improving the space efficiency of the token. Instead 
 		\State $success$(``all roles assigned'')
 	\EndIf
 \EndFunction
-\end{algorithmic}	
+\end{algorithmic}
 
 \begin{algorithmic}
 \Function{Upon receiving ``Compute Assignment Index'' message:}{src}
 	\State $index = EvaluateRoles()$
 	\State $SendMessage$(src, ``Assignment Index Result'', index)
 \EndFunction
-\end{algorithmic}	
+\end{algorithmic}
 
 \begin{algorithmic}
 \Function{Upon receiving ``Update Assignment Index'' message:}{src, role}
@@ -195,7 +195,7 @@ One area of future work is improving the space efficiency of the token. Instead 
 	\EndIf
 	\State $SendMessage$(src, ``Assignment Index Update'', index)
 \EndFunction
-\end{algorithmic}	
+\end{algorithmic}
 
 \begin{algorithmic}
 \Function{EvaluateRoles:}{}
@@ -208,10 +208,10 @@ One area of future work is improving the space efficiency of the token. Instead 
 		\State $ priority := infinity$
         \EndIf
         \State $node_id := i$
-        
+
 	\Return (flexibility, priority, node\_id)
 \EndFunction
-\end{algorithmic}	
+\end{algorithmic}
 
 \lstset{frame=single, caption=Framework Listing}
 \begin{lstlisting}
@@ -226,7 +226,7 @@ from logical_node import *
 from role_criteria import *
 
 class CompPowerRoleCriteria(RoleCriteria):
-    
+
     # Consider importing this calculation
     # Note the global value must be more than 0 for the mul. masks to work
     __GLOBAL_ROLES_LIST__ = []
@@ -239,7 +239,7 @@ class CompPowerRoleCriteria(RoleCriteria):
     __GRADE_VECTOR__ = []
     __ROLE__ = 0
     name = ""
-    
+
     def __init__(self, grade_vector, name=""):
         #print('Created Container for Work unit')
         self.__GRADE_VECTOR__ = grade_vector
@@ -250,16 +250,16 @@ class CompPowerRoleCriteria(RoleCriteria):
         self.__STORAGE__CAP = self.__GRADE_VECTOR__[4]
         self.__generate_flexibility__()
         self.name = name
-        
+
     def __generate_flexibility__(self):
         temp_grade = self.get_scalar_grade(self.__GRADE_VECTOR__)
         self.__FLEX__ = temp_grade
-        
+
     def get_scalar_grade(self, role_grade_vector):
         """
-        A very basic variant of flexibility grading (or the null method).  
+        A very basic variant of flexibility grading (or the null method).
         Creates a grade on how flexible the system is to all types of task,
-        such that priority is pivoted by flexibility ratings. 
+        such that priority is pivoted by flexibility ratings.
         """
         temp_grade = 0
         #print(self.__GRADE_VECTOR__[0])
@@ -273,20 +273,20 @@ class CompPowerRoleCriteria(RoleCriteria):
             temp_grade += role_grade_vector[3]
         if role_grade_vector[4] > 1:
             temp_grade += role_grade_vector[4]
-            
+
         return temp_grade
-    
+
     def get_my_grade(self):
         return self.__FLEX__
-    
+
     def evaluate_against(self, node_parameters):
         """
-        Used to compare roles from a 5 element list of values.  
-        Returns a binary list if the role is satisfied or not.  
+        Used to compare roles from a 5 element list of values.
+        Returns a binary list if the role is satisfied or not.
         """
         # Return a binary true if it can handle the role
         role_satisfy = [0, 0, 0, 0, 0]
-        
+
         if self.__PROCESSING_POWER__ > node_parameters[0]:
             role_satisfy[0] = 1
         if self.__MEMORY_CAPABILITIES__ > node_parameters[1]:
@@ -297,31 +297,31 @@ class CompPowerRoleCriteria(RoleCriteria):
             role_satisfy[3] = 1
         if self.__STORAGE__CAP > node_parameters[4]:
             role_satisfy[4] = 1
-            
+
         # Change to simpler
         # return role_satisfy
-        # print self.get_scalar_grade(self.__GRADE_VECTOR__),  
+        # print self.get_scalar_grade(self.__GRADE_VECTOR__),
         		self.get_scalar_grade(node_parameters)
-        
+
         # At least 3 of the functionality thresholds are met
         if role_satisfy.count(1) >= 3:
             return 1
         else:
-            # Even if 3 aren't met, I have enough capabilities 
+            # Even if 3 aren't met, I have enough capabilities
             # to get something done
-            if self.get_scalar_grade(self.__GRADE_VECTOR__) >= 
+            if self.get_scalar_grade(self.__GRADE_VECTOR__) >=
             		self.get_scalar_grade(node_parameters):
                 return 1
             else:
                 return 0
-                
+
 # Clients will define their own RoleCriteria, which will expect
 # a certain set of parameters to evaluate on
 role_criteria_0 = CompPowerRoleCriteria([1, 1, 5, 2, 5], "Mobile")
 role_criteria_1 = CompPowerRoleCriteria([2, 3, 1, 2, 5], "Desktop")
 role_criteria_2 = CompPowerRoleCriteria([5, 5, 5, 5, 5], "Server")
 role_criterias = [role_criteria_0, role_criteria_1, role_criteria_2]
-network = SimulatedNetwork(role_criterias)        
+network = SimulatedNetwork(role_criterias)
 
 node_0 = LogicalNode(0, [1, 2], network, parameters=[1, 1, 1, 1, 1])
 node_1 = LogicalNode(1, [], network, parameters=[2, 2, 2, 2, 2])
@@ -341,9 +341,9 @@ else:
     print "Success! All roles assigned!"
     for node in nodes:
         if node.assigned_role is not None:
-            print "Node %d's role: %s" % (node.node_id, 
+            print "Node %d's role: %s" % (node.node_id,
             	role_criterias[node.assigned_role].name)
-        
+
 \end{lstlisting}
 
 
