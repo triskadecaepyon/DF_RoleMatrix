@@ -63,7 +63,7 @@ Priority is defined as the preference the algorithm gives to choosing a node amo
 \begin{equation*}
      priority = \begin{cases}
                \frac{1}{\sum_{r \in S }G_{r}(P_{k}) }               & \text{if flexibility} > 0\\
-               \infty,               & \text{otherwise}\\
+               \infty               & \text{otherwise}\\
            \end{cases}
 \end{equation*}
 
@@ -191,8 +191,11 @@ Finally, our algorithm greedily chooses the best node at the time of each role a
 \section{Appendix: Code Listings}
 \appendix
 \begin{center}
-\large{\textbf{A.1}}
+\textit{Full code listings and algorithm code in Python available at https://github.com/triskadecaepyon/DF\_RoleMatrix}\\
+\vspace{3mm}
+\large{\textbf{Listing A.1}}
 \end{center}
+
 \begin{algorithmic}
 \State{node\_k::}
 \State{$R:$ set of role criteria}
@@ -215,7 +218,7 @@ Finally, our algorithm greedily chooses the best node at the time of each role a
    	\State{indices $:= \{\}$}
    	\For{dst $:= 1 to N$}
       		\State{$SendMessage$(dst, ``Compute Assignment Index'')}
-      		\State{indices $:=$ indices $\cup ReceiveMessage$(dst, ``Assignment Index Result'')}
+      		\State{indices $:=$ indices $\cup$ $ReceiveMessage$(dst, ``Assignment Index Result'')}
    	\EndFor
 	\State{path = $CreateAssignmentPath$(indices)}
    	\State{num\_roles\_to\_assign $:= |R|$}
@@ -310,10 +313,10 @@ Finally, our algorithm greedily chooses the best node at the time of each role a
 \end{algorithmic}
 
 \begin{center}
-\large{\textbf{A.2}}
+\large{\textbf{Listing A.2}}
 \end{center}
 
-\lstset{frame=single, caption=Framework Listing}
+\lstset{frame=single, caption=Example Framework Listing in Python}
 \begin{lstlisting}
 import os, sys
 
@@ -327,7 +330,6 @@ from role_criteria import *
 
 class CompPowerRoleCriteria(RoleCriteria):
 
-    # Consider importing this calculation
     # Note the global value must be more than 0 for the mul. masks to work
     __GLOBAL_ROLES_LIST__ = []
     __PROCESSING_POWER__ = 0
@@ -398,16 +400,16 @@ class CompPowerRoleCriteria(RoleCriteria):
         if self.__STORAGE__CAP > node_parameters[4]:
             role_satisfy[4] = 1
 
-        # Change to simpler
         # return role_satisfy
-        # print self.get_scalar_grade(self.__GRADE_VECTOR__),  self.get_scalar_grade(node_parameters)
 
         # At least 3 of the functionality thresholds are met
         if role_satisfy.count(1) >= 3:
             return 1
         else:
-            # Even if 3 aren't met, I have enough capabilities to get something done
-            if self.get_scalar_grade(self.__GRADE_VECTOR__) >= self.get_scalar_grade(node_parameters):
+            # Even if 3 aren't met, I have enough capabilities 
+            # to get something done
+            if self.get_scalar_grade(self.__GRADE_VECTOR__) 
+            	>= self.get_scalar_grade(node_parameters):
                 return 1
             else:
                 return 0
@@ -419,7 +421,6 @@ role_criterias = [
     CompPowerRoleCriteria([2, 3, 1, 2, 5], "Desktop"),
     CompPowerRoleCriteria([5, 5, 5, 5, 5], "Server")
 ]
-
 
 nodes = [
     LogicalNode(0, [1, 1, 1, 1, 1], role_criterias),
@@ -440,7 +441,8 @@ else:
     print "Success! All roles assigned!"
     for node in nodes:
         if node.assigned_role is not None:
-            print "Node %d's role: %s" % (node.node_id, role_criterias[node.assigned_role].name)
+            print "Node %d's role: %s" % (node.node_id, 
+            	role_criterias[node.assigned_role].name)
 
 \end{lstlisting}
 
