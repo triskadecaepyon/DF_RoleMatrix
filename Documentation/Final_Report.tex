@@ -128,10 +128,14 @@ The test results above suggest that algorithm's time complexity is quadratic in 
 The space complexity for each node is $O(|R|)$, because each node can satisfy at most $|R|$ roles. The space complexity for the token is at $O(|N|)$, because the assignment path will initially contain all nodes in the system.
 
 \section{Conclusion}
-Although our test results indicate that the naive centralized algorithm performs better than the our algorithm in the best-case scenario and in bandwidth usage, the theoretical time complexity of our algorithm suggests that it is a better choice for large systems. ????
+The naive centralized algorithm is grossly inefficient because it tries all possible role assignments in order to find one that works. Our algorithm uses the notions of flexibility and grading to efficiently assign roles to the best possible nodes while still avoiding open conflicts. Although the above test results indicate that the naive centralized algorithm performs better empirically in some metrics, the theoretical time complexity of our algorithm suggests that it is a better choice for large systems.
 
 \section{Future Work}
 One area of future work is improving the space efficiency of the token. Instead of storing the assignment path in the token, the assignment path can be computed on demand as each node receives the token. If a node computes an empty assignment path, the algorithm terminates.
+
+Another area of future work is implementing a centralized version of our algorithm. Similar to the current version of the algorithm, each node would evaluate itself against $R$ in order to produce a set of tuples, each of which contains a satisfied role, flexibility, and grade. However, instead of computing an assignment index from that set and sending it to the root node, each node would send that set directly to a server node. The server node would be able to compute the assignment index for all nodes and make all role assignments in a centralized manner, without needing to send the ``Update Assignment Index'' messages to each node. The resulting algorithm may be more efficient than the current algorithm, although at the loss of decentralization.
+
+Finally, our algorithm greedily chooses the best node at the time of each role assignment. An alternative version of the algorithm might choose the best possible assignment of all roles based on some cost function. However, such an algorithm would inherently need to be implemented using a branch and bound paradigm for efficiency.
 
 \end{multicols}
 \begin{thebibliography}{9}
@@ -141,21 +145,21 @@ One area of future work is improving the space efficiency of the token. Instead 
   \emph{A Distributed Algorithm for Minimum-Weight Spanning Trees},
   ACM Transactionson Programming Languages and Systems, Vol.5, No. 1, January 1983.
   \url{http://www.cs.tau.ac.il/~afek/p66-gallager.pdf}
-  
+
 \bibitem{rpyc}
   \emph{RPyC Unbounded Computing},
   \url{http://rpyc.readthedocs.org/en/latest/api/core_protocol.html}
-  
+
 \bibitem{hadoop}
   J. Xie, S. Yin, Xi. Ruan, Z. Ding, Y. Tian, J. Majors, A. Manzanares, and X. Qin
   \emph{Improving MapReduce Performance through Data Placement in Heterogeneous Hadoop Clusters}
    Eng.auburn.ed. April 2010.
   \url{http://www.eng.auburn.edu/~xqin/pubs/hcw10.pdf}
-  
+
 \bibitem{aws}
   \emph{Amazon Elastic MapReduce}
   \url{http://s3.amazonaws.com/awsdocs/ElasticMapReduce/latest/emr-dg.pdf}
-  
+
 \bibitem{azure}
   \emph{Azure IoT Suite}
   \url{https://www.microsoft.com/en-us/server-cloud/internet-of-things/azure-iot-suite.aspx}
@@ -165,16 +169,16 @@ One area of future work is improving the space efficiency of the token. Instead 
   \emph{The SMesh Wireless Mesh Network}
   ACM Transactions on Computer Systems, Vol. 28, No. 3, Article 6, Publication date: September 2010.
   \url{http://www.cnds.jhu.edu/pub/papers/SMesh_ACM_TOCS_2010_09.pdf}
-  
+
 \bibitem{iotivity}
   \emph{IoTivity}
   \url{https://www.iotivity.org}
-  
+
 \bibitem{loadb}
   S. Ludwig, A. Moallem
   \emph{Swarm Intelligence Approaches for Grid Load Balancing}
   J Grid Computing (2011)
-  
+
 \end{thebibliography}
 
 \section{Appendix: Code Listings}
@@ -182,28 +186,28 @@ One area of future work is improving the space efficiency of the token. Instead 
 
 \begin{algorithmic}
 \Function{BeginAssignment:}{}
-	\State $token := CreateToken()$
-	\State $ForwardToken(token)  $
+   \State{token $:= CreateToken$()}
+   \State{$ForwardToken$(token)}
 \EndFunction
 \end{algorithmic}
 
 \begin{algorithmic}
 \Function{CreateToken:}{}
-	\State $Indices := \{\}$
-	\For{$dst := 1$ to $N$}
-		\State{$SendMessage$(dst, ``Compute Assignment Index'')}
-		\State{$Indices := indices$ U $ReceiveMessage$(dst, ``Assignment Index Result'')}
-		\State{path = $CreateAssignmentPath$(indices)}
-
-		\Return{(path, $|R|$)}
-	\EndFor
+   \State{indices $:= \{\}$
+   \For{dst $:= 1 to N$}
+      \State{$SendMessage$(dst, ``Compute Assignment Index'')}
+      \State{indices $:=$ indices $\cup ReceiveMessage$(dst, ``Assignment Index Result'')}
+   \EndFor
+   \State{path = $CreateAssignmentPath$(indices)}
+   \State{num_roles_to_assign = $|R|$}
+   \Return{(path, num_roles_to_assign)}
 \EndFunction
 \end{algorithmic}
 
 \begin{algorithmic}
 \Function{CreateAssignmentPath:}{indices}
-	\State $indices := sort\_asc(indices)$
-	\State $ForwardToken(token)  $
+	\State{indices $:= sort\_ascending$(indices)}
+	\Return{$map$(indices, $lambda$(index)(index.node_id))}
 \EndFunction
 \end{algorithmic}
 
