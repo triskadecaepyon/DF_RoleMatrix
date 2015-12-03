@@ -5,6 +5,19 @@
 \usepackage{amssymb}
 \usepackage{listings}
 \usepackage{algpseudocode,algorithm}
+\usepackage{graphicx}
+\graphicspath{ {/} }
+
+% Figures within a column...
+\makeatletter
+\newenvironment{tablehere}
+{\def\@captype{table}}
+{}
+\newenvironment{figurehere}
+{\def\@captype{figure}}
+{}
+\makeatother
+
 \begin{document}
 
 \newpage
@@ -42,13 +55,13 @@ Encountering closed conflicts in a real system indicates a lack of node resource
 
 The role assignment algorithm assumes that nodes in $N$ are strongly connected and that roles in $R$ are common knowledge [reference]. The algorithm begins by choosing a root node from N. This can be done using any root-finding algorithm such as MST [reference]. The root node broadcasts a ``Compute Assignment Index'' message to all nodes, including itself.
 
-Upon receiving the ``Compute Assignment Index'' message, a node $k$ executes an evaluation routine that computes a set $S$ of satisfiable roles, where $S = \{r$ in $R : Gr(Pk) > 0\}$. From S, two new quantities are derived: flexibility and priority. Flexibility is defined as the degrees of freedom that a node has in choosing a role. It is derived as follows: flexibility = $\|S\|$. Flexibility is used to determine the next node that should choose a role. The algorithm maintains the invariant that the next node to choose a role is the one with the lowest flexibility. This invariant ensure that open conflicts never happen. A proof is given in the appendix.
+Upon receiving the ``Compute Assignment Index'' message, a node $k$ executes an evaluation routine that computes a set $S$ of satisfiable roles, where $S = \{r$ in $R : Gr(Pk) > 0\}$. From S, two new quantities are derived: flexibility and priority. Flexibility is defined as the degrees of freedom that a node has in choosing a role. It is derived as follows: flexibility = $|S|$. Flexibility is used to determine the next node that should choose a role. The algorithm maintains the invariant that the next node to choose a role is the one with the lowest flexibility. This invariant ensure that open conflicts never happen. A proof is given in the appendix.
 
 Priority is defined as the preference that the algorithm should give to choosing a node first among a set of nodes with the same flexibility. Nodes with smaller priorities are chosen first over nodes with larger priorities. Priority is derived as follows: if $flexibility = 0$, $priority = \infty$; otherwise, $priority = \frac{1}{(\displaystyle \sum(G_{r}(P_{k}))} \forall r$ in $S$. From this formula it is easy to see that the algorithm prefers nodes that produce higher overall grades for the roles they satisfy. This ensures that the system chooses the best nodes for satisfying the roles in $R$.
 
 After node $k$ has computed its flexibility and priority, it creates a tuple called the assignment index: (flexibility, priority, k). This tuple is sent back to the root node via the message ``Assignment Index Result.''
 
-Once the root node receives the ``Assignment Index Result'' message from each node, it uses the assignment indices to create a token that is passed from node to node, according to the flexibility invariant mentioned above. The token is defined as the following tuple: \textit{(assignment\_path, num\_roles\_to\_assign)}. The \textit{num\_roles\_to\_assign} element is initialized simply with the value $\|R\|$. In order to compute the assignment\_path element, the assignment indices are sorted in ascending order, and the node ids are extracted into a list. Since the node ids are be sorted by flexibility first and then by priority, the flexibility invariant is maintained and the best node is chosen first to satisfy a role. After creating the token, the root node continues the algorithm by popping the first node id from the \textit{assignment\_path} and sending the token to the corresponding node using a ``Token'' message.
+Once the root node receives the ``Assignment Index Result'' message from each node, it uses the assignment indices to create a token that is passed from node to node, according to the flexibility invariant mentioned above. The token is defined as the following tuple: \textit{(assignment\_path, num\_roles\_to\_assign)}. The \textit{num\_roles\_to\_assign} element is initialized simply with the value $|R|$. In order to compute the assignment\_path element, the assignment indices are sorted in ascending order, and the node ids are extracted into a list. Since the node ids are be sorted by flexibility first and then by priority, the flexibility invariant is maintained and the best node is chosen first to satisfy a role. After creating the token, the root node continues the algorithm by popping the first node id from the \textit{assignment\_path} and sending the token to the corresponding node using a ``Token'' message.
 
 Upon receiving the ``Token'' message, a node will first check to see if it has any roles to satisfy. If it does, it will choose one, notify all other nodes of its choice using the ``Update Assignment Index'' message, and decrement the \textit{num\_roles\_to\_assign} element in the received token. It will then wait for the ``Assignment Index Update'' message from every other node in order recreate the token using the updated indices. After this step, if there are no more roles to assign in the token, the algorithm has completed successfully. Otherwise, the node must check the token's \textit{assignment\_path} element to determine if there are any more nodes to forward the token to. If there are no more nodes, the algorithm has failed because it was unable to assign all roles to nodes. If there are more nodes, the algorithm will pop the next node id from \textit{assignment\_path} and send the token to that node.
 
@@ -59,14 +72,14 @@ An example of the algorithm with end-user implementation will now be demonstrate
 
 Utilizing the previous algorithm section in A.1, a framework has been created which implements the metaclass that houses the algorithm and necessary base functions.  The most important function of the metaclass is \textit{evaluate\_against}, which allows for the comparison of one class to another of equal type.  This function call returns a result that gives the rest of the algorithm a method to move about the algorithm for selection, and provide reentrant behavior for remaining resources such that they can continue to be assigned quickly without a main coordinator.  The code example is listed in A.2.
 
-Parameters that describe the end system have been created to represent the wide variability in configuration that each of the nodes within the end system can have.  Related but vastly different characteristics such as processor power and graphics processor units, or network speed and storage capabilities.  The motivation for creating such parameters is to provide examples that simulate the wide range of variability in hardware present in today?s computers and embedded systems.
+Parameters that describe the end system have been created to represent the wide variability in configuration that each of the nodes within the end system can have.  Related but vastly different characteristics such as processor power and graphics processor units, or network speed and storage capabilities.  The motivation for creating such parameters is to provide examples that simulate the wide range of variability in hardware present in today's computers and embedded systems.
 
-The grading system is then created on heuristics that are representative of the domain?s needs.  In the case of the example, each of the values are weighed against thresholds in an array to determine boolean satisfiability for each of the various types of characteristics.  Once these have been determined, another grading system is used used for an overall score as a fallback when no roles are reached.  During the evaluate step, this allows for smaller hardware systems to still be viable for split tasks even in the absence of being adequate for larger tasks.
+The grading system is then created on heuristics that are representative of the domain's needs.  In the case of the example, each of the values are weighed against thresholds in an array to determine boolean satisfiability for each of the various types of characteristics.  Once these have been determined, another grading system is used used for an overall score as a fallback when no roles are reached.  During the evaluate step, this allows for smaller hardware systems to still be viable for split tasks even in the absence of being adequate for larger tasks.
 
 Then, using the algorithm created (along with the abstract base class in Python), roles are created to simulate the end user having a tasks to fill with a processing job passed from the application layer; these are classes that implement the \textit{RoleCriteria} metaclass.  Next the network topology is simulated with SimulatedNetwork, and encompasses the token passing logic along with the evaluation Application Programming Interface (API).
 
-Once the topology is set with network and LogicalNodes, each node can assess itself and decide to assign itself or pass the token; this begins with the \textit{node.begin\_logical\_assignment(role\_criterias)} call, which starts the evaluation process.  Once the system has evaluated all nodes, an analysis of the role assignments can be viewed and work can be done afterwards.  With the results now reached, the system can now evaluate whether it can move forward with the job and what each node?s responsibilities will be.
-
+Once the topology is set with network and LogicalNodes, each node can assess itself and decide to assign itself or pass the token; this begins with the \textit{node.begin\_logical\_assignment(role\_criterias)} call, which starts the evaluation process.  Once the system has evaluated all nodes, an analysis of the role assignments can be viewed and work can be done afterwards.  With the results now reached, the system can now evaluate whether it can move forward with the job and what each node's responsibilities will be.
+\vfill
 \section{Test Results}
 
 We implemented our role assignment algorithm in Python in order to simplify development. The algorithm relies on a \textit{Network} interface class to provide communication between nodes in a network. We derived two concrete classes from this interface: \textit{SimulatedNetwork} and \textit{LiveNetwork}. The \textit{LiveNetwork} class is implemented using RPyC [reference], which is a symmetric, asynchronous RPC framework. The \textit{SimulatedNetwork} is implemented using a simple list that contains each node in the network. It facilitates communication between a source node and destination node by indexing into the list using the destination node's ID.
@@ -77,6 +90,26 @@ We tested our algorithm (hereafter referred to as the ``smart'' algorithm in thi
 
 The metrics we tested for are execution time and bandwidth usage. For execution time, we produced test cases for the worst-case and best-case role satisfiability scenarios. Each test case is a square matrix, which is referred to as a role satisfiability matrix. Rows correspond to nodes, columns correspond to roles, and each nonzero entry $(i, j)$ indicates that node $i$ satisfies role $j$. In the worst-case scenario, the role satisfiability matrix is a lower triangular matrix rotated by 90 degrees (the entries above the anti-diagonal are nonzero). This produces a worst-case execution time in the naive algorithm because in order for the last node to be assigned its only role, every other node must be assigned each of their roles. The satisfiability matrix for the best-case scenario is a diagonal matrix. For the bandwidth usage metric, we consider only the size of message payloads that are sent over the network, such as node parameters or tokens. The test results are shown below.
 
+\begin{figurehere}
+\centering
+\resizebox{\columnwidth}{!}{\includegraphics{fig1.png}}
+\caption{Execution time for the worst-case scenario for role satisfiability; the smart algorithm outperforms the naive algorithm}
+\end{figurehere}
+\vspace{.2in}
+
+\begin{figurehere}
+\centering
+\resizebox{\columnwidth}{!}{\includegraphics{fig2.png}}
+\caption{Execution time for the best-case scenario for role satisfiability. The naive algorithm performs considerably better than the smart algorithm. However, the best-case scenario is rare -- these benefits are hard to come by in practice.}
+\end{figurehere}
+\vspace{.2in}
+
+\begin{figurehere}
+\centering
+\resizebox{\columnwidth}{!}{\includegraphics{fig3.png}}
+\caption{The overall bandwidth usage across all nodes, including the server in the naive algorithm. The bandwidth usage for the smart implementation grows quadratically with respect to $|R|$, which matches our theoretical results.}
+\end{figurehere}
+\vspace{.2in}
 
 From \textit{Figure 1}, it is clear that the smart algorithm outperforms the naive algorithm. This is due to the exponential time complexity of the naive algorithm in the worst-case. The time that the smart algorithm spends in order to compute assignment flexibility allows it to overtake the naive algorithm for larger values of $|R|$. However, Figure 2 shows that the naive algorithm performs better than the smart algorithm in the best-case scenario. This is because the naive algorithm only has one role assignment to consider for every node and can assign those roles in linear manner. The smart algorithm, on the other hand, must notify every node in the assignment path each time a role is assigned. Since this happens for each node's role assignment, the smart algorithm's time complexity is quadratic in nature. Figure 3 also reflects the quadratic nature of the smart algorithm in terms of bandwidth usage: the token, which is linear in size, must be sent to each node for processing, and each newly chosen role must be broadcasted to every node in the assignment path. For the naive algorithm, the bandwidth usage is linear because each node must send its parameters to the server, and the server must send back a role assignment to each node.
 \section{Algorithm Analysis}
