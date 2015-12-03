@@ -216,7 +216,7 @@ Finally, our algorithm greedily chooses the best node at the time of each role a
 \begin{algorithmic}
 \Function{CreateToken:}{}
    	\State{indices $:= \{\}$}
-   	\For{dst $:= 1 to N$}
+   	\For{dst $:= 1$ to $N$}
       		\State{$SendMessage$(dst, ``Compute Assignment Index'')}
       		\State{indices $:=$ indices $\cup$ $ReceiveMessage$(dst, ``Assignment Index Result'')}
    	\EndFor
@@ -236,7 +236,7 @@ Finally, our algorithm greedily chooses the best node at the time of each role a
 \begin{algorithmic}
 \Function{UpdateToken:}{token, chosen\_role}
 	\State $indices := \{\}$
-	\For{dst $:= 1 to len$(token.path)}
+	\For{dst $:= 1$ to $len$(token.path)}
 		\State{$SendMessage$(dst, ``Update Assignment Index'', chosen\_role)}
 		\State{indices $:=$ indices $\cup ReceiveMessage$(dst, ``Assignment Index Result'')}
 	\EndFor
@@ -247,7 +247,7 @@ Finally, our algorithm greedily chooses the best node at the time of each role a
 
 \begin{algorithmic}
 \Function{ForwardToken:}{token}
-	\State{next $:= pop_first$(token.path)}
+	\State{next $:= pop\_first$(token.path)}
 	\State{$SendMessage$(next, ``Token'', token)}
 \EndFunction
 \end{algorithmic}
