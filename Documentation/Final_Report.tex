@@ -39,11 +39,11 @@ Department of Electrical and Computer Engineering, University of Texas at Austin
 In the majority of distributed systems today, computing work is preferably done by homogeneous systems in order to provide predictable balancing of divided work. However, this requires a careful matching of tasks to hardware and an encompassing knowledge of capabilities provided by all nodes in a system. In order to remove the need for managing such complexity, this report provides an algorithm and example framework that allows nodes in a system to map themselves logically to client-defined roles. This allows for heterogeneous systems to automatically adjust the roles of their nodes and thereby change the tasks those nodes take on. In addition, the algorithm and framework allows systems to easily recalibrate themselves as nodes are added or subtracted from the network. This report details the algorithm design and motivation, and it provides an example framework for implementing a client-side system. Finally, a summary of the test results and an analysis of the algorithm are provided to demonstrate the viability and efficiency of the algorithm in current and future implementations.
 
 \section{Introduction}
-Distributed systems have provided increased computational capabilities to many computing problems and tasks over the last decade, and new technologies built on top of distributed systems have improved. From cloud systems such as Amazon Web Services (AWS) to Apache Hadoop clusters, many modern systems that are used for infrastructure and applications are implemented on top of custom-built distributed systems. However, ad-hoc and local hardware for consumers rarely achieve the coordination that these custom-built systems are able to provide.  Furthermore, given a set of tasks, few frameworks can arbitrate the roles that a system should take on, which is a requirement in order for networks of heterogeneous nodes to coordinate their efforts.
+Distributed systems have provided increased computational capabilities to many computing problems and tasks over the last decade, and new technologies built on top of distributed systems have improved. From cloud systems such as Amazon Web Services (AWS) to Apache Hadoop clusters, many modern systems that are used for infrastructure and applications are implemented on top of custom-built distributed systems \cite{aws} \cite{hadoop}. However, ad-hoc and local hardware for consumers rarely achieve the coordination that these custom-built systems are able to provide.  Furthermore, given a set of tasks, few frameworks can arbitrate the roles that a system should take on, which is a requirement in order for networks of heterogeneous nodes to coordinate their efforts.
 
-Many recent systems and frameworks have been geared toward the Internet Of Things (IoT), which pair ``smart'' devices with functionality that automates or assists the user in a task or set of actions.  Many of the newest frameworks look to tie the coordination of heterogenous devices or systems together, but do not solve the problem of role arbitration.  Examples of these frameworks are IoTivity, Azure IoT, and Apple HomeKit.  Each of these technologies looks to regulate the interfaces between devices and users, such as the coordination interface, the operating interface, or the scheduling and reporting interface. However, these systems assume a hardware design that was intended to fit a singular role, which makes them inflexible at driving tasks other than those they were designed for. Reconfiguration of resources is rare in many distributed systems and is even more rare in IoT systems.
+Many recent systems and frameworks have been geared toward the Internet Of Things (IoT), which pair ``smart'' devices with functionality that automates or assists the user in a task or set of actions.  Many of the newest frameworks look to tie the coordination of heterogenous devices or systems together, but do not solve the problem of role arbitration.  Examples of these frameworks are IoTivity, Azure IoT, and Apple HomeKit \cite{iotivity} \cite{azure}.  Each of these technologies looks to regulate the interfaces between devices and users, such as the coordination interface, the operating interface, or the scheduling and reporting interface. However, these systems assume a hardware design that was intended to fit a singular role, which makes them inflexible at driving tasks other than those they were designed for. Reconfiguration of resources is rare in many distributed systems and is even more rare in IoT systems.
 
-The motivation for the proposed algorithm comes from several known examples of reconfigurable routing and task deployment.  One of these examples is power grid distribution, in which nodes on the grid must reconfigure themselves to deliver power when a node goes down or a subsystem demands more power.  In adjusting for a downed node, the network must reconfigure power flows by analyzing available resources, solving for the best assignment, and then confirming the new settings to run.  In this manner, role changes must be determined without any centralized server.  However, systems containing nodes of unknown design, configuration, or capability can present a problem, because solving for resource assignment generally assumes homogeneous nodes.  In addition, the removal or discovery of new heterogenous nodes is difficult because no general protocol exists for deciding the role of a new node while simultaneously reconfiguring the system to provide the best resource assignment.
+The motivation for the proposed algorithm comes from several known examples of reconfigurable routing and task deployment.  One of these examples is power grid distribution, in which nodes on the grid must reconfigure themselves to deliver power when a node goes down or a subsystem demands more power \cite{loadb}.  In adjusting for a downed node, the network must reconfigure power flows by analyzing available resources, solving for the best assignment, and then confirming the new settings to run.  In this manner, role changes must be determined without any centralized server.  However, systems containing nodes of unknown design, configuration, or capability can present a problem, because solving for resource assignment generally assumes homogeneous nodes.  In addition, the removal or discovery of new heterogenous nodes is difficult because no general protocol exists for deciding the role of a new node while simultaneously reconfiguring the system to provide the best resource assignment \cite{mesh}.
 
 While some protocols do exist for specific domains, the fundamental design requirement for our algorithm is to dynamically assign roles and change system configurations without being strictly tied to a specific domain. Although the proposed algorithm shares some similarities to swarm algorithms and robotics, the biggest difference is the use of heterogeneous systems for general computation tasks.
 
@@ -54,7 +54,7 @@ Because satisfiability prevents some roles from being assigned to certain nodes,
 
 Encountering closed conflicts in a real system indicates a lack of node resources for satisfying roles. It is the system administrator or maintainer's responsibility to determine how to respond to closed conflicts. Open conflicts, on the other hand, can be resolved by changing the the order in which nodes are assigned roles. Let us return to the example above that illustrates an open conflict. If node 2 is assigned its only role first, then there would still be one role left to assign to node 1. Thus, it is clear that the key to avoiding open conflicts is determining the correct order in which nodes should be assigned roles. Our algorithm accomplishes this in a distributed manner.
 
-The role assignment algorithm assumes that nodes in $N$ are strongly connected and that roles in $R$ are common knowledge [reference to book]. The algorithm begins by choosing a root node from $N$. This can be done using any root-finding algorithm such as MST [reference to the MST paper]. The root node broadcasts a ``Compute Assignment Index'' message to all nodes, including itself.
+The role assignment algorithm assumes that nodes in $N$ are strongly connected and that roles in $R$ are common knowledge \cite{garg}. The algorithm begins by choosing a root node from $N$. This can be done using any root-finding algorithm such as MST \cite{MST}. The root node broadcasts a ``Compute Assignment Index'' message to all nodes, including itself.
 
 Upon receiving the ``Compute Assignment Index'' message, a node $k$ executes an evaluation routine that computes a set $S$ of satisfiable roles, where $S = \{r$ in $R : G_{r}(P_{k}) > 0\}$. From $S$, two new quantities are derived: \textit{flexibility} and \textit{priority}. Flexibility is defined as the degree of freedom to which a node can choose a role, and it is derived as $flexibility = |S|$. Flexibility is used to determine the next node that should choose a role. The algorithm maintains the invariant that the next node to choose a role is the one with the lowest flexibility. This invariant ensures that open conflicts never occur.
 
@@ -80,7 +80,7 @@ Upon receiving the ``Update Assignment Index'' message, a node $k$ will check to
 \section{Example Framework}
 An example of using the algorithm in an end-user implementation will now be demonstrated.  For many users, computers and devices owned are rarely matched in specification. This causes an underutilization or overutilization of resources.  In order to combat this problem, it was conjectured that a method of grading, role assignment, and coordination were key in solving such a problem.  Assuming a wide range of configurations, the goal of the exercise is to be able to assign client-defined roles to nodes in a heterogeneous system.
 
-Utilizing the algorithm shown in section A.1, a framework has been created which implements a Python abstract class \textit{RoleCriteria} that represents the concept of a role. The class exposes one method called \textit{evaluate\_against}, which takes in a node's parameters as input and outputs a grade. The grade gives the rest of the algorithm a way to choose the best role to assign to a node, and it provides reentrant behavior such that nodes can be reassigned roles if a node leaves the system or a new one enters.  The code example is listed in A.2.
+Utilizing the algorithm shown in section \textit{A.1}, a framework has been created which implements a Python abstract class \textit{RoleCriteria} that represents the concept of a role. The class exposes one method called \textit{evaluate\_against}, which takes in a node's parameters as input and outputs a grade. The grade gives the rest of the algorithm a way to choose the best role to assign to a node, and it provides reentrant behavior such that nodes can be reassigned roles if a node leaves the system or a new one enters.  The code example is listed in \textit{A.2}.
 
 Parameters that describe the end system have been created to represent the wide variability in configuration that each of the nodes within the end system can have.  Related but vastly different characteristics such as processor power, graphics processing units, or network speed are represented.  The motivation for creating such parameters is to provide examples that simulate the wide range of variability in hardware present in today's computers and embedded systems.
 
@@ -92,7 +92,7 @@ Once the network and \textit{LogicalNode} instances are created, each node asses
 \vfill
 \section{Test Results}
 
-We implemented our role assignment algorithm in Python in order to simplify development. The algorithm relies on a \textit{Network} interface class to provide communication between nodes in a network. We derived two concrete classes from this interface: \textit{SimulatedNetwork} and \textit{LiveNetwork}. The \textit{LiveNetwork} class is implemented using RPyC [reference], which is a symmetric, asynchronous RPC framework. The \textit{SimulatedNetwork} is implemented using a simple list that contains each node in the network. It facilitates communication between a source node and destination node by indexing into the list using the destination node's ID.
+We implemented our role assignment algorithm in Python in order to simplify development. The algorithm relies on a \textit{Network} interface class to provide communication between nodes in a network. We derived two concrete classes from this interface: \textit{SimulatedNetwork} and \textit{LiveNetwork}. The \textit{LiveNetwork} class is implemented using RPyC \cite{rpyc}, which is a symmetric, asynchronous RPC framework. The \textit{SimulatedNetwork} is implemented using a simple list that contains each node in the network. It facilitates communication between a source node and destination node by indexing into the list using the destination node's ID.
 
 Our test results are based off using the \textit{SimulatedNetwork} implementation. We initially attempted the \textit{LiveNetwork} implementation on a single computer, but we were unable to produce satisfactory results due to limited computing resources.
 
@@ -142,7 +142,41 @@ Finally, our algorithm greedily chooses the best node at the time of each role a
 \end{multicols}
 \begin{thebibliography}{9}
 
-\bibitem{mst}
+\bibitem{aws}
+  \emph{Amazon Elastic MapReduce}
+  \url{http://s3.amazonaws.com/awsdocs/ElasticMapReduce/latest/emr-dg.pdf}
+
+\bibitem{hadoop}
+  J. Xie, S. Yin, Xi. Ruan, Z. Ding, Y. Tian, J. Majors, A. Manzanares, and X. Qin
+  \emph{Improving MapReduce Performance through Data Placement in Heterogeneous Hadoop Clusters}
+   Eng.auburn.ed. April 2010.
+  \url{http://www.eng.auburn.edu/~xqin/pubs/hcw10.pdf}
+
+\bibitem{iotivity}
+  \emph{IoTivity}
+  \url{https://www.iotivity.org}
+
+\bibitem{azure}
+  \emph{Azure IoT Suite}
+  \url{https://www.microsoft.com/en-us/server-cloud/internet-of-things/azure-iot-suite.aspx}
+
+\bibitem{loadb}
+  S. Ludwig, A. Moallem
+  \emph{Swarm Intelligence Approaches for Grid Load Balancing}
+  J Grid Computing (2011)
+
+\bibitem{mesh}
+  Y. AMIR, C. DANILOV, R. MUSALOIU-ELEFTERI and N. RIVERA
+  \emph{The SMesh Wireless Mesh Network}
+  ACM Transactions on Computer Systems, Vol. 28, No. 3, Article 6, Publication date: September 2010.
+  \url{http://www.cnds.jhu.edu/pub/papers/SMesh_ACM_TOCS_2010_09.pdf}
+
+\bibitem{garg}
+ V. Garg
+ \emph{Concurrent and Distributed Systems in Java}
+  A JOHN WILEY \& SONS, INC., PUBLICATION, 2004
+
+\bibitem{MST}
   R. G. GALLAGER, P. A. HUMBLET, and P. M. SPIRA,
   \emph{A Distributed Algorithm for Minimum-Weight Spanning Trees},
   ACM Transactionson Programming Languages and Systems, Vol.5, No. 1, January 1983.
@@ -152,40 +186,13 @@ Finally, our algorithm greedily chooses the best node at the time of each role a
   \emph{RPyC Unbounded Computing},
   \url{http://rpyc.readthedocs.org/en/latest/api/core_protocol.html}
 
-\bibitem{hadoop}
-  J. Xie, S. Yin, Xi. Ruan, Z. Ding, Y. Tian, J. Majors, A. Manzanares, and X. Qin
-  \emph{Improving MapReduce Performance through Data Placement in Heterogeneous Hadoop Clusters}
-   Eng.auburn.ed. April 2010.
-  \url{http://www.eng.auburn.edu/~xqin/pubs/hcw10.pdf}
-
-\bibitem{aws}
-  \emph{Amazon Elastic MapReduce}
-  \url{http://s3.amazonaws.com/awsdocs/ElasticMapReduce/latest/emr-dg.pdf}
-
-\bibitem{azure}
-  \emph{Azure IoT Suite}
-  \url{https://www.microsoft.com/en-us/server-cloud/internet-of-things/azure-iot-suite.aspx}
-
-\bibitem{mesh}
-  Y. AMIR, C. DANILOV, R. MUSALOIU-ELEFTERI and N. RIVERA
-  \emph{The SMesh Wireless Mesh Network}
-  ACM Transactions on Computer Systems, Vol. 28, No. 3, Article 6, Publication date: September 2010.
-  \url{http://www.cnds.jhu.edu/pub/papers/SMesh_ACM_TOCS_2010_09.pdf}
-
-\bibitem{iotivity}
-  \emph{IoTivity}
-  \url{https://www.iotivity.org}
-
-\bibitem{loadb}
-  S. Ludwig, A. Moallem
-  \emph{Swarm Intelligence Approaches for Grid Load Balancing}
-  J Grid Computing (2011)
-
 \end{thebibliography}
 
 \section{Appendix: Code Listings}
 \appendix
-
+\begin{center}
+\large{\textbf{A.1}}
+\end{center}
 \begin{algorithmic}
 \State{node\_k::}
 \State{$R:$ set of role criteria}
@@ -301,6 +308,10 @@ Finally, our algorithm greedily chooses the best node at the time of each role a
 	\Return{(flexibility, priority, node\_id)}
 \EndFunction
 \end{algorithmic}
+
+\begin{center}
+\large{\textbf{A.2}}
+\end{center}
 
 \lstset{frame=single, caption=Framework Listing}
 \begin{lstlisting}
