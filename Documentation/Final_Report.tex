@@ -4,6 +4,7 @@
 \usepackage{multicol}
 \usepackage{amssymb}
 \usepackage{listings}
+\usepackage{amsmath}
 \usepackage{algpseudocode,algorithm}
 \usepackage{graphicx}
 \graphicspath{ {/} }
@@ -55,21 +56,22 @@ Encountering closed conflicts in a real system indicates a lack of node resource
 
 The role assignment algorithm assumes that nodes in $N$ are strongly connected and that roles in $R$ are common knowledge [reference to book]. The algorithm begins by choosing a root node from $N$. This can be done using any root-finding algorithm such as MST [reference to the MST paper]. The root node broadcasts a ``Compute Assignment Index'' message to all nodes, including itself.
 
-Upon receiving the ``Compute Assignment Index'' message, a node $k$ executes an evaluation routine that computes a set $S$ of satisfiable roles, where $S = \{r$ \in $R : G_{r}(P_{k}) > 0\}$. From $S$, two new quantities are derived: \textit{flexibility} and \textit{priority}. Flexibility is defined as the degree of freedom to which a node can choose a role, and it is derived as $flexibility = \left\vertS\right\vert$. Flexibility is used to determine the next node that should choose a role. The algorithm maintains the invariant that the next node to choose a role is the one with the lowest flexibility. This invariant ensures that open conflicts never occur.
+Upon receiving the ``Compute Assignment Index'' message, a node $k$ executes an evaluation routine that computes a set $S$ of satisfiable roles, where $S = \{r$ in $R : G_{r}(P_{k}) > 0\}$. From $S$, two new quantities are derived: \textit{flexibility} and \textit{priority}. Flexibility is defined as the degree of freedom to which a node can choose a role, and it is derived as $flexibility = |S|$. Flexibility is used to determine the next node that should choose a role. The algorithm maintains the invariant that the next node to choose a role is the one with the lowest flexibility. This invariant ensures that open conflicts never occur.
 
 Priority is defined as the preference the algorithm gives to choosing a node among a set of nodes with the same flexibility. Nodes with smaller priorities are chosen first for role assignment over nodes with larger priorities. Priority is derived as follows:
-\[
-   priority =
-\left\{\begin{matrix}
-\displaystyle \frac{1}{\sum_{r \in S }G_{r}(P_{k}) },& \text{if } flexibility > 0\\
-\infty,& \text{otherwise}
-\end{matrix}\right.
-\]
+
+\begin{equation*}
+     priority = \begin{cases}
+               \frac{1}{\sum_{r \in S }G_{r}(P_{k}) }               & \text{if flexibility} > 0\\
+               \infty,               & \text{otherwise}\\
+           \end{cases}
+\end{equation*}
+
 From the above formula it is easy to see that the algorithm prefers nodes that produce higher overall grades for the roles they satisfy. This ensures that the system chooses the strongest nodes for satisfying the roles in $R$.
 
 After node $k$ has computed its flexibility and priority, it creates a tuple called the assignment index: \textit{(flexibility, priority, k)}. This tuple is sent back to the root node via the message ``Assignment Index Result.''
 
-Once the root node receives the ``Assignment Index Result'' message from each node, it uses the assignment indices to create a token that is passed from node to node, according to the flexibility invariant mentioned above. The token is defined as the following tuple: \textit{(assignment\_path, num\_roles\_to\_assign)}. The \textit{num\_roles\_to\_assign} element is initialized simply with the value $\left\vertR\right\vert$. In order to compute the assignment\_path element, the assignment indices are sorted in ascending order, and the node ids are extracted into a list. Since the node ids are be sorted by flexibility first and then by priority, the flexibility invariant is maintained and the best node is chosen first to satisfy a role. After creating the token, the root node continues the algorithm by popping the first node id from the \textit{assignment\_path} and sending the token to the corresponding node using a ``Token'' message.
+Once the root node receives the ``Assignment Index Result'' message from each node, it uses the assignment indices to create a token that is passed from node to node, according to the flexibility invariant mentioned above. The token is defined as the following tuple: \textit{(assignment\_path, num\_roles\_to\_assign)}. The \textit{num\_roles\_to\_assign} element is initialized simply with the value $|R|$. In order to compute the assignment\_path element, the assignment indices are sorted in ascending order, and the node ids are extracted into a list. Since the node ids are be sorted by flexibility first and then by priority, the flexibility invariant is maintained and the best node is chosen first to satisfy a role. After creating the token, the root node continues the algorithm by popping the first node id from the \textit{assignment\_path} and sending the token to the corresponding node using a ``Token'' message.
 
 Upon receiving the ``Token'' message, a node will first check to see if it has any roles to satisfy. If it does, it will choose one, notify all other nodes of its choice using the ``Update Assignment Index'' message, and decrement the \textit{num\_roles\_to\_assign} element in the received token. It will then wait for the ``Assignment Index Update'' message from every other node in order recreate the token using the updated assignment indices. After this step, if there are no more roles to assign in the token, then the algorithm has completed successfully. Otherwise, the node must check the token's \textit{assignment\_path} element to determine if there are any more nodes to forward the token to. If there are no more nodes, the algorithm has failed because it was unable to assign all roles to nodes. If there are still more nodes, the algorithm will pop the next node ID from \textit{assignment\_path} and send the token to that node.
 
