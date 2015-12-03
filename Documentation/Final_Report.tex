@@ -78,17 +78,17 @@ Upon receiving the ``Token'' message, a node will first check to see if it has a
 Upon receiving the ``Update Assignment Index'' message, a node $k$ will check to see if the chosen role is in $S$. If it is, the node will decrement its flexibility, recompute its priority, and send an ``Assignment Index Update'' message back with an updated assignment index.
 
 \section{Example Framework}
-An example of the algorithm with end-user implementation will now be demonstrated.  For many users, computers and devices owned are rarely matched in specification; this causes an underutilization of resources, or an over-utilization or imbalance of a particular resource.  In order to combat this problem, it was conjectured that a method of grading, role assignment, and coordination were key in solving such a problem.  Assuming a wide range of configurations, the goal of the exercise is to be able to select and assign roles in a distributed fashion with heterogeneous systems.
+An example of using the algorithm in an end-user implementation will now be demonstrated.  For many users, computers and devices owned are rarely matched in specification. This causes an underutilization or overutilization of resources.  In order to combat this problem, it was conjectured that a method of grading, role assignment, and coordination were key in solving such a problem.  Assuming a wide range of configurations, the goal of the exercise is to be able to assign client-defined roles to nodes in a heterogeneous system.
 
-Utilizing the previous algorithm section in A.1, a framework has been created which implements the metaclass that houses the algorithm and necessary base functions.  The most important function of the metaclass is \textit{evaluate\_against}, which allows for the comparison of one class to another of equal type.  This function call returns a result that gives the rest of the algorithm a method to move about the algorithm for selection, and provide reentrant behavior for remaining resources such that they can continue to be assigned quickly without a main coordinator.  The code example is listed in A.2.
+Utilizing the algorithm shown in section A.1, a framework has been created which implements a Python abstract class \textit{RoleCriteria} that represents the concept of a role. The class exposes one method called \textit{evaluate\_against}, which takes in a node's parameters as input and outputs a grade. The grade gives the rest of the algorithm a way to choose the best role to assign to a node, and it provides reentrant behavior such that nodes can be reassigned roles if a node leaves the system or a new one enters.  The code example is listed in A.2.
 
-Parameters that describe the end system have been created to represent the wide variability in configuration that each of the nodes within the end system can have.  Related but vastly different characteristics such as processor power and graphics processor units, or network speed and storage capabilities.  The motivation for creating such parameters is to provide examples that simulate the wide range of variability in hardware present in today's computers and embedded systems.
+Parameters that describe the end system have been created to represent the wide variability in configuration that each of the nodes within the end system can have.  Related but vastly different characteristics such as processor power, graphics processing units, or network speed are represented.  The motivation for creating such parameters is to provide examples that simulate the wide range of variability in hardware present in today's computers and embedded systems.
 
-The grading system is then created on heuristics that are representative of the domain's needs.  In the case of the example, each of the values are weighed against thresholds in an array to determine boolean satisfiability for each of the various types of characteristics.  Once these have been determined, another grading system is used used for an overall score as a fallback when no roles are reached.  During the evaluate step, this allows for smaller hardware systems to still be viable for split tasks even in the absence of being adequate for larger tasks.
+A grading system is also provided, which works on heuristics that are representative of the problem domain's needs.  In the case of our example, each parameter in a node is weighed against a threshold to determine boolean satisfiability for each of the supported characteristics.  Once these satisfiability values have been determined, another grading system is used for an overall score as a fallback for when no characteristics are satisfiable.  This allows for smaller hardware systems to still be viable for split tasks even in the absence of satisfiability for larger tasks.
 
-Then, using the algorithm created (along with the abstract base class in Python), roles are created to simulate the end user having a tasks to fill with a processing job passed from the application layer; these are classes that implement the \textit{RoleCriteria} metaclass.  Next the network topology is simulated with SimulatedNetwork, and encompasses the token passing logic along with the evaluation Application Programming Interface (API).
+Now, using the grading system, roles are defined by subclassing and instantiating the \textit{RoleCriteria} class, which simulate the end user's required tasks that need to be fulfilled. These role instances are passed to each \textit{LogicalNode} instance in order to provide common knowledge of the roles. A network topology is simulated using the \textit{SimulatedNetwork} class, which encompasses functionality for passing the token and other messages.
 
-Once the topology is set with network and LogicalNodes, each node can assess itself and decide to assign itself or pass the token; this begins with the \textit{node.begin\_logical\_assignment(role\_criterias)} call, which starts the evaluation process.  Once the system has evaluated all nodes, an analysis of the role assignments can be viewed and work can be done afterwards.  With the results now reached, the system can now evaluate whether it can move forward with the job and what each node's responsibilities will be.
+Once the network and \textit{LogicalNode} instances are created, each node assesses itself against the roles defined previously. This happens via the call to \textit{node[0].begin\_logical\_assignment()}. Once all nodes have evaluated themselves, a token is created and passed from node to node in order to direct the assignment of roles according to flexibility and grade. Upon assigning all roles, the role assignments can be inspected and used for further processing at the application level.
 \vfill
 \section{Test Results}
 
@@ -96,7 +96,7 @@ We implemented our role assignment algorithm in Python in order to simplify deve
 
 Our test results are based off using the \textit{SimulatedNetwork} implementation. We initially attempted the \textit{LiveNetwork} implementation on a single computer, but we were unable to produce satisfactory results due to limited computing resources.
 
-We tested our algorithm (hereafter referred to as the ``smart'' algorithm in this section) against a naive centralized algorithm. The naive algorithm sends all node parameters to a central server, which assigns roles to nodes by recursively trying all possible assignment combinations until successful. The role assignments are then sent back to each node. We expect the naive algorithm's time complexity to be exponential in the worst-base but linear in the best-case.
+We tested our algorithm (hereafter referred to as the ``smart'' algorithm) against a naive centralized algorithm. The naive algorithm sends all node parameters to a central server, which assigns roles to nodes by recursively trying all possible assignment combinations until successful. The role assignments are then sent back to each node. We expect the naive algorithm's time complexity to be exponential in the worst-base but linear in the best-case.
 
 The metrics we tested for are execution time and bandwidth usage. For execution time, we produced test cases for the worst-case and best-case role satisfiability scenarios. Each test case is a square matrix, which is referred to as a role satisfiability matrix. Rows correspond to nodes, columns correspond to roles, and each nonzero entry $(i, j)$ indicates that node $i$ satisfies role $j$. In the worst-case scenario, the role satisfiability matrix is a lower triangular matrix rotated by 90 degrees (the entries above the anti-diagonal are nonzero). This produces a worst-case execution time in the naive algorithm because in order for the last node to be assigned its only role, every other node must be assigned each of their roles. The satisfiability matrix for the best-case scenario is a diagonal matrix. For the bandwidth usage metric, we consider only the size of message payloads that are sent over the network, such as node parameters or tokens. The test results are shown below.
 
@@ -105,21 +105,21 @@ The metrics we tested for are execution time and bandwidth usage. For execution 
 \resizebox{\columnwidth}{!}{\includegraphics{fig1.png}}
 \caption{Execution time for the worst-case scenario for role satisfiability; the smart algorithm outperforms the naive algorithm}
 \end{figurehere}
-\vspace{.2in}
+\vspace{.1in}
 
 \begin{figurehere}
 \centering
 \resizebox{\columnwidth}{!}{\includegraphics{fig2.png}}
 \caption{Execution time for the best-case scenario for role satisfiability. The naive algorithm performs considerably better than the smart algorithm. However, the best-case scenario is rare -- these benefits are hard to come by in practice.}
 \end{figurehere}
-\vspace{.2in}
+\vspace{.1in}
 
 \begin{figurehere}
 \centering
 \resizebox{\columnwidth}{!}{\includegraphics{fig3.png}}
-\caption{The overall bandwidth usage across all nodes, including the server in the naive algorithm. The bandwidth usage for the smart implementation grows quadratically with respect to $|R|$, which matches our theoretical results.}
+\caption{The overall bandwidth usage across all nodes, including the server in the naive algorithm.}
 \end{figurehere}
-\vspace{.2in}
+\vspace{.1in}
 
 From \textit{Figure 1}, it is clear that the smart algorithm outperforms the naive algorithm. This is due to the exponential time complexity of the naive algorithm in the worst-case. The time that the smart algorithm spends in order to compute assignment flexibility allows it to overtake the naive algorithm for larger values of $|R|$. However, Figure 2 shows that the naive algorithm performs better than the smart algorithm in the best-case scenario. This is because the naive algorithm only has one role assignment to consider for every node and can assign those roles in linear manner. The smart algorithm, on the other hand, must notify every node in the assignment path each time a role is assigned. Since this happens for each node's role assignment, the smart algorithm's time complexity is quadratic in nature. Figure 3 also reflects the quadratic nature of the smart algorithm in terms of bandwidth usage: the token, which is linear in size, must be sent to each node for processing, and each newly chosen role must be broadcasted to every node in the assignment path. For the naive algorithm, the bandwidth usage is linear because each node must send its parameters to the server, and the server must send back a role assignment to each node.
 \section{Algorithm Analysis}
@@ -127,7 +127,7 @@ The algorithm's message complexity is derived as follows: there are $|N| - 1$ me
 
 The test results above suggest that algorithm's time complexity is quadratic in nature. However, this is somewhat misleading due to the fact that the results were obtained on a single machine using the SimulatedNetwork class. As a result, the benefits of parallelism are lost. Theoretically, the amount of work that each node must perform is $|R|$ for evaluating each role initially and $|R|$ for updating the assignment index for each role. Since $|N|$ work is required to transfer the token throughout the system and $|N|$, the overall work complexity is really $O(|R| + |N|)$.
 
-The space complexity for each node is $O(|R|)$, because each node can satisfy at most $|R|$ roles. The space complexity for the token is at $O(|N|)$, because the assignment path will initially contain all nodes in the system.
+The space complexity for each node is $O(|R|)$, because each node can satisfy at most $|R|$ roles. The space complexity for the token is $O(|N|)$, because the assignment path will initially contain all nodes in the system.
 
 \section{Conclusion}
 The naive centralized algorithm is grossly inefficient because it tries all possible role assignments in order to find one that works. Our algorithm uses the notions of flexibility and grading to efficiently assign roles to the best possible nodes while still avoiding open conflicts. Although the above test results indicate that the naive centralized algorithm performs better empirically in some metrics, the theoretical time complexity of our algorithm suggests that it is a better choice for large systems.
@@ -205,21 +205,21 @@ Finally, our algorithm greedily chooses the best node at the time of each role a
 
 \begin{algorithmic}
 \Function{CreateToken:}{}
-   \State{indices $:= \{\}$
-   \For{dst $:= 1 to N$}
-      \State{$SendMessage$(dst, ``Compute Assignment Index'')}
-      \State{indices $:=$ indices $\cup ReceiveMessage$(dst, ``Assignment Index Result'')}
-   \EndFor
-   \State{path $:= CreateAssignmentPath$(indices)}
-   \State{num_roles_to_assign $:= |R|$}
-   \Return{(path, num_roles_to_assign)}
+   	\State{indices $:= \{\}$}
+   	\For{dst $:= 1 to N$}
+      		\State{$SendMessage$(dst, ``Compute Assignment Index'')}
+      		\State{indices $:=$ indices $\cup ReceiveMessage$(dst, ``Assignment Index Result'')}
+   	\EndFor
+	\State{path = $CreateAssignmentPath$(indices)}
+   	\State{num\_roles\_to\_assign $:= |R|$}
+   	\Return (path, num\_roles\_to\_assign)
 \EndFunction
 \end{algorithmic}
 
 \begin{algorithmic}
 \Function{CreateAssignmentPath:}{indices}
 	\State{indices $:= sort\_ascending$(indices)}
-	\Return{$map$(indices, $lambda$(index)(index.node_id))}
+	\Return{$map$(indices, $lambda$(index)(index.node\_id))}
 \EndFunction
 \end{algorithmic}
 
