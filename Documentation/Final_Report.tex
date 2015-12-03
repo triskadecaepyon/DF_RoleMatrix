@@ -5,6 +5,19 @@
 \usepackage{amssymb}
 \usepackage{listings}
 \usepackage{algpseudocode,algorithm}
+\usepackage{graphicx}
+\graphicspath{ {/} }
+
+% Figures within a column...
+\makeatletter
+\newenvironment{tablehere}
+{\def\@captype{table}}
+{}
+\newenvironment{figurehere}
+{\def\@captype{figure}}
+{}
+\makeatother
+
 \begin{document}
 
 \newpage
@@ -67,14 +80,14 @@ An example of the algorithm with end-user implementation will now be demonstrate
 
 Utilizing the previous algorithm section in A.1, a framework has been created which implements the metaclass that houses the algorithm and necessary base functions.  The most important function of the metaclass is \textit{evaluate\_against}, which allows for the comparison of one class to another of equal type.  This function call returns a result that gives the rest of the algorithm a method to move about the algorithm for selection, and provide reentrant behavior for remaining resources such that they can continue to be assigned quickly without a main coordinator.  The code example is listed in A.2.
 
-Parameters that describe the end system have been created to represent the wide variability in configuration that each of the nodes within the end system can have.  Related but vastly different characteristics such as processor power and graphics processor units, or network speed and storage capabilities.  The motivation for creating such parameters is to provide examples that simulate the wide range of variability in hardware present in today?s computers and embedded systems.
+Parameters that describe the end system have been created to represent the wide variability in configuration that each of the nodes within the end system can have.  Related but vastly different characteristics such as processor power and graphics processor units, or network speed and storage capabilities.  The motivation for creating such parameters is to provide examples that simulate the wide range of variability in hardware present in today's computers and embedded systems.
 
-The grading system is then created on heuristics that are representative of the domain?s needs.  In the case of the example, each of the values are weighed against thresholds in an array to determine boolean satisfiability for each of the various types of characteristics.  Once these have been determined, another grading system is used used for an overall score as a fallback when no roles are reached.  During the evaluate step, this allows for smaller hardware systems to still be viable for split tasks even in the absence of being adequate for larger tasks.
+The grading system is then created on heuristics that are representative of the domain's needs.  In the case of the example, each of the values are weighed against thresholds in an array to determine boolean satisfiability for each of the various types of characteristics.  Once these have been determined, another grading system is used used for an overall score as a fallback when no roles are reached.  During the evaluate step, this allows for smaller hardware systems to still be viable for split tasks even in the absence of being adequate for larger tasks.
 
 Then, using the algorithm created (along with the abstract base class in Python), roles are created to simulate the end user having a tasks to fill with a processing job passed from the application layer; these are classes that implement the \textit{RoleCriteria} metaclass.  Next the network topology is simulated with SimulatedNetwork, and encompasses the token passing logic along with the evaluation Application Programming Interface (API).
 
-Once the topology is set with network and LogicalNodes, each node can assess itself and decide to assign itself or pass the token; this begins with the \textit{node.begin\_logical\_assignment(role\_criterias)} call, which starts the evaluation process.  Once the system has evaluated all nodes, an analysis of the role assignments can be viewed and work can be done afterwards.  With the results now reached, the system can now evaluate whether it can move forward with the job and what each node?s responsibilities will be.
-
+Once the topology is set with network and LogicalNodes, each node can assess itself and decide to assign itself or pass the token; this begins with the \textit{node.begin\_logical\_assignment(role\_criterias)} call, which starts the evaluation process.  Once the system has evaluated all nodes, an analysis of the role assignments can be viewed and work can be done afterwards.  With the results now reached, the system can now evaluate whether it can move forward with the job and what each node's responsibilities will be.
+\vfill
 \section{Test Results}
 
 We implemented our role assignment algorithm in Python in order to simplify development. The algorithm relies on a \textit{Network} interface class to provide communication between nodes in a network. We derived two concrete classes from this interface: \textit{SimulatedNetwork} and \textit{LiveNetwork}. The \textit{LiveNetwork} class is implemented using RPyC [reference], which is a symmetric, asynchronous RPC framework. The \textit{SimulatedNetwork} is implemented using a simple list that contains each node in the network. It facilitates communication between a source node and destination node by indexing into the list using the destination node's ID.
@@ -85,6 +98,26 @@ We tested our algorithm (hereafter referred to as the ``smart'' algorithm in thi
 
 The metrics we tested for are execution time and bandwidth usage. For execution time, we produced test cases for the worst-case and best-case role satisfiability scenarios. Each test case is a square matrix, which is referred to as a role satisfiability matrix. Rows correspond to nodes, columns correspond to roles, and each nonzero entry $(i, j)$ indicates that node $i$ satisfies role $j$. In the worst-case scenario, the role satisfiability matrix is a lower triangular matrix rotated by 90 degrees (the entries above the anti-diagonal are nonzero). This produces a worst-case execution time in the naive algorithm because in order for the last node to be assigned its only role, every other node must be assigned each of their roles. The satisfiability matrix for the best-case scenario is a diagonal matrix. For the bandwidth usage metric, we consider only the size of message payloads that are sent over the network, such as node parameters or tokens. The test results are shown below.
 
+\begin{figurehere}
+\centering
+\resizebox{\columnwidth}{!}{\includegraphics{fig1.png}}
+\caption{Execution time for the worst-case scenario for role satisfiability; the smart algorithm outperforms the naive algorithm}
+\end{figurehere}
+\vspace{.2in}
+
+\begin{figurehere}
+\centering
+\resizebox{\columnwidth}{!}{\includegraphics{fig2.png}}
+\caption{Execution time for the best-case scenario for role satisfiability. The naive algorithm performs considerably better than the smart algorithm. However, the best-case scenario is rare -- these benefits are hard to come by in practice.}
+\end{figurehere}
+\vspace{.2in}
+
+\begin{figurehere}
+\centering
+\resizebox{\columnwidth}{!}{\includegraphics{fig3.png}}
+\caption{The overall bandwidth usage across all nodes, including the server in the naive algorithm. The bandwidth usage for the smart implementation grows quadratically with respect to $|R|$, which matches our theoretical results.}
+\end{figurehere}
+\vspace{.2in}
 
 From \textit{Figure 1}, it is clear that the smart algorithm outperforms the naive algorithm. This is due to the exponential time complexity of the naive algorithm in the worst-case. The time that the smart algorithm spends in order to compute assignment flexibility allows it to overtake the naive algorithm for larger values of $|R|$. However, Figure 2 shows that the naive algorithm performs better than the smart algorithm in the best-case scenario. This is because the naive algorithm only has one role assignment to consider for every node and can assign those roles in linear manner. The smart algorithm, on the other hand, must notify every node in the assignment path each time a role is assigned. Since this happens for each node's role assignment, the smart algorithm's time complexity is quadratic in nature. Figure 3 also reflects the quadratic nature of the smart algorithm in terms of bandwidth usage: the token, which is linear in size, must be sent to each node for processing, and each newly chosen role must be broadcasted to every node in the assignment path. For the naive algorithm, the bandwidth usage is linear because each node must send its parameters to the server, and the server must send back a role assignment to each node.
 \section{Algorithm Analysis}
