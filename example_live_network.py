@@ -58,8 +58,8 @@ if __name__ == '__main__':
 
     elif command == "begin_algorithm":
 
-        client = LiveNetwork.create_client(node_ip_addresses[node_id])
-        token = client.begin_logical_assignment()
+        client = LiveNetwork.create_conn(node_ip_addresses[node_id])
+        token = client.root.begin_logical_assignment()
 
         if token:
             print "Error! Some roles couldn't be satisfied"
@@ -68,8 +68,8 @@ if __name__ == '__main__':
         else:
             print "Success! All roles assigned!"
             for node_ip_address in node_ip_addresses:
-                node = LiveNetwork.create_client(node_ip_address)
-                if node.assigned_role is not None:
-                    print "Node %d's role: %s" % (node.node_id, role_criterias[node.assigned_role].name)
+                node_proxy = LiveNetwork.create_conn(node_ip_address)
+                if node_proxy.root.assigned_role is not None:
+                    print "Node %d's role: %s" % (node_proxy.root.node_id, role_criterias[node_proxy.root.assigned_role].name)
     else:
         print "Unrecognized command: %s" % command

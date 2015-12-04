@@ -90,10 +90,10 @@ class LiveNetwork(Network):
                     logical_node_service,
                     hostname=node_ip_addresses[server_node.node_id][0],
                     port=node_ip_addresses[server_node.node_id][1],
-                    protocol_config = {"allow_all_attrs": True})
+                    protocol_config = {"allow_all_attrs": True, "allow_pickle": True})
     @staticmethod
     def create_conn(node_ip_address):
-        return rpyc.connect(node_ip_address[0], node_ip_address[1], config = {"allow_all_attrs": True})
+        return rpyc.connect(node_ip_address[0], node_ip_address[1], config = {"allow_all_attrs": True, "allow_pickle": True})
 
 class SimulatedNetwork(Network):
     """

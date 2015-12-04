@@ -1,6 +1,7 @@
 from logical_token import Token
 import rpyc
 import sys
+import copy
 
 FLEXIBILITY_ELEMENT = 0
 PRIORITY_ELEMENT = 1
@@ -80,6 +81,8 @@ class LogicalNode:
         """
 
         self.overall_grade = 0
+        self.satisfiable_roles = set()
+        self.assigned_role = None
 
         for (role_id, role_criteria) in enumerate(self.role_criterias):
             grade = role_criteria.evaluate_against(self.parameters)
@@ -99,6 +102,7 @@ class LogicalNode:
         return (assignment_flexibility, assignment_priority, self.node_id)
 
     def receive_token(self, src_node_id, token):
+        token = copy.copy(token)
         self.choose_role_if_available(token)
         return self.forward_token(token)
 
