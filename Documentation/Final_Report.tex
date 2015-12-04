@@ -348,7 +348,8 @@ class CompPowerRoleCriteria(RoleCriteria):
     def evaluate_against(self, node_parameters):
         """
         Used to compare roles from a 5 element list of values.
-        Returns the sum of the node_parameters if all characteristics are satisfied.
+        Returns the sum of the node_parameters if all 
+        characteristics are satisfied.
         Otherwise, returns 0.
         """
 
@@ -373,7 +374,8 @@ class CompPowerRoleCriteria(RoleCriteria):
 
 
 # # Instantiate role criterias to create different roles
-# [processing_power, memory_capabilities, gpu_power, network_speed, storage_cap]
+# [processing_power, memory_capabilities, 
+# gpu_power, network_speed, storage_cap]
 role_criterias = [
     CompPowerRoleCriteria([1, 1, 1, 1, 1], "Mobile"),
     CompPowerRoleCriteria([2, 3, 2, 2, 4], "Desktop"),
@@ -382,7 +384,8 @@ role_criterias = [
 
 
 # # Instantiate logical nodes with different parameters
-# [processing_power, memory_capabilities, gpu_power, network_speed, storage_cap]
+# [processing_power, memory_capabilities, 
+# gpu_power, network_speed, storage_cap]
 nodes = [
     LogicalNode(0, [1, 1, 1, 1, 1], role_criterias),
     LogicalNode(1, [2, 2, 2, 2, 2], role_criterias),
@@ -394,7 +397,8 @@ nodes = [
 # # Set up the network
 node_ip_addresses = [("localhost", 5000 + i) for i in range(len(nodes))]
 networks = [LiveNetwork(node, node_ip_addresses) for node in nodes]
-server_starters = [threading.Thread(target=network.start_server) for network in networks]
+server_starters = [threading.Thread(target=network.start_server) 
+	for network in networks]
 for server_starter in server_starters:
     server_starter.start()
 
@@ -413,7 +417,8 @@ else:
     print "Success - all roles assigned!"
     for node in nodes:
         if node.assigned_role is not None:
-            print "Node %d's role: %s" % (node.node_id, role_criterias[node.assigned_role].name)
+            print "Node %d's role: %s" % (node.node_id, 
+            	role_criterias[node.assigned_role].name)
 
 
 # # Force an assignment failure
